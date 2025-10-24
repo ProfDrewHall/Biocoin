@@ -1,0 +1,48 @@
+[project]
+name = "software"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "bleak>=0.22.3",
+    "colorama>=0.4.6",
+    "numpy>=2.3.1",
+    "pandas>=2.3.0",
+    "ruff>=0.12.1",
+    "ty>=0.0.1a12",
+]
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+target-version = 'py310'
+
+[tool.ruff.format]
+quote-style = 'single'          # Use single quotes for strings
+docstring-code-format = true    # Format code blocks in docstrings
+indent-style = 'space'
+skip-magic-trailing-comma = false
+line-ending = 'auto'
+docstring-code-line-length = 120
+
+
+[tool.ruff.lint]
+select = ['E', 'F', 'I', 'UP', 'B', 'A', 'C4', 'TID', 'NPY', 'RUF']
+ignore = [
+    'D100',  # Missing docstring in public module
+    'D104',  # Missing docstring in public package
+]
+fixable = ['ALL']
+unfixable = []
+
+[tool.ruff.lint.pydocstyle]
+convention = 'google'  
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "single"
+
+[dependency-groups]
+dev = [
+    "ty>=0.0.1a11",
+]

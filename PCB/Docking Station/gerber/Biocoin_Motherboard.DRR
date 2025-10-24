@@ -1,0 +1,38 @@
+----------------------------------------------------------------------------------------------------------------------------------
+NCDrill File Report For: Biocoin_Motherboard.PcbDoc   10/2/2025  2:06:04 PM
+----------------------------------------------------------------------------------------------------------------------------------
+
+Layer Pair : Top Layer to Bottom Layer
+ASCII RoundHoles File : Biocoin_Motherboard.TXT
+ASCII RectHoles File : Biocoin_Motherboard-RectHoles.TXT
+
+Tool       Hole Size               Hole Tolerance               Hole Type       Hole Count   Plated         Tool Travel
+----------------------------------------------------------------------------------------------------------------------------------
+T1      8mil (0.203mm)                                            Round             4         PTH        0.66inch (16.77mm)
+T2      10mil (0.254mm)                                           Round             17        PTH        4.21inch (106.93mm)
+T3      12mil (0.305mm)                                           Round             7         PTH        1.25inch (31.78mm)
+T4      15mil (0.381mm)                                           Round             3         PTH        1.59inch (40.41mm)
+T5      18mil (0.457mm)                                           Round             8         PTH        2.78inch (70.55mm)
+T6      20mil (0.508mm)                                           Round             1         PTH        0.00inch (0.00mm)
+T7      22mil (0.559mm)                                           Round             2         PTH        0.18inch (4.65mm)
+T8      24mil (0.6mm)                                             Round             20        PTH        1.06inch (26.90mm)
+T9      24mil (0.6mm)                                             Rectangle         4         PTH        0.93inch (23.64mm)
+T10     24mil (0.61mm)                                            Round             16        PTH        0.82inch (20.88mm)
+T11     25mil (0.635mm)                                           Round             2         PTH        0.46inch (11.75mm)
+T12     30mil (0.762mm)                                           Round             6         PTH        1.20inch (30.39mm)
+T13     32mil (0.813mm)                                           Round             2         PTH        0.08inch (2.00mm)
+T14     33mil (0.838mm)                                           Round             3         PTH        0.16inch (4.00mm)
+T15     34mil (0.86mm)                                            Round             8         PTH        1.38inch (34.92mm)
+T16     35mil (0.889mm)                                           Round             4         PTH        0.30inch (7.62mm)
+T17     42mil (1.067mm)                                           Round             20        PTH        5.57inch (141.56mm)
+T18     43mil (1.1mm)                                             Round             14        PTH        1.35inch (34.26mm)
+T19     63mil (1.6mm)                                             Round             2         PTH        0.32inch (8.18mm)
+T20     73mil (1.85mm)                                            Round             3         PTH        0.37inch (9.40mm)
+T21     79mil (2mm)                                               Round             4         PTH        2.70inch (68.71mm)
+T22     100mil (2.54mm)                                           Round             4         PTH        6.80inch (172.79mm)
+T23     46mil (1.156mm)                                           Round             16        NPTH       2.27inch (57.55mm)
+T24     47mil (1.19mm)                                            Round             2         NPTH       0.46inch (11.73mm)
+----------------------------------------------------------------------------------------------------------------------------------
+Totals                                                                              172
+
+Total Processing Time (hh:mm:ss) : 00:00:00

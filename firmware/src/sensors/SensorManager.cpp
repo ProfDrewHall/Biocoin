@@ -1,0 +1,156 @@
+#include "sensors/SensorManager.h"
+
+#include "HWConfig/constants.h"
+#include "bluetooth/gatt.h"
+#include "bluetooth/transmitdata_task.h"
+#include "drivers/AD5940_hal.h"
+#include "sensors/EChem_CA.h"
+#include "sensors/EChem_CV.h"
+#include "sensors/EChem_DPV.h"
+#include "sensors/EChem_Imp.h"
+#include "sensors/EChem_OCP.h"
+#include "sensors/EChem_Temp.h"
+#include "sensors/datamover_task.h"
+#include "sensors/iontophoresis.h"
+#include "util/debug_log.h"
+
+#include <utility>
+#include <memory>
+
+using namespace sensor;
+
+namespace sensor {
+  std::unique_ptr<Sensor> pActiveSensor = nullptr;
+  SensorType activeSensorID = SensorType::None;
+  TestState testState = TestState::NOT_RUNNING;
+
+  static std::unique_ptr<Sensor> createSensor(sensor::SensorType type);
+}; // namespace sensor
+
+void sensor::init() {
+  dbgInfo("Initialzing sensor interface...");
+  createDataMoverTask(); // Create the task to handle interrupts
+  updateStatus(TestState::NOT_RUNNING);
+}
+
+std::unique_ptr<Sensor> sensor::createSensor(sensor::SensorType type) {
+  switch (type) {
+  case SensorType::CA:
+    return std::unique_ptr<sensor::EChem_CA>();
+  case SensorType::CV:
+    return std::unique_ptr<sensor::EChem_CV>();
+  case SensorType::DPV:
+    return std::unique_ptr<sensor::EChem_DPV>();
+  case SensorType::IMP:
+    return std::unique_ptr<sensor::EChem_Imp>();
+  case SensorType::OCP:
+    return std::unique_ptr<sensor::EChem_OCP>();
+  case SensorType::TEMP:
+    return std::unique_ptr<sensor::EChem_Temp>();
+  case SensorType::IONTOPHORESIS:
+    return std::unique_ptr<sensor::Iontophoresis>();
+  case SensorType::None:
+  default:
+    return nullptr;
+  }
+}
+
+bool sensor::loadParameters(uint8_t* data, uint16_t len) {
+  if (len < 1 || data == nullptr) {
+    updateStatus(TestState::INVALID_PARAMETERS);
+    return false;
+  }
+
+  const SensorType requestedType = static_cast<SensorType>(data[0]);
+
+  if (!pActiveSensor || requestedType != activeSensorID) {
+    cleanupSensor();
+
+    std::unique_ptr<Sensor> next = createSensor(requestedType);
+    if (!next) {
+      dbgError(String("Unknown or unsupported sensor: ") + data[0]);
+      updateStatus(TestState::INVALID_PARAMETERS);
+      return false;
+    }
+
+    pActiveSensor = std::move(next);
+    activeSensorID = requestedType;
+    updateStatus(TestState::NOT_RUNNING);
+  }
+
+  // Forward parameters to the newly created technique
+  if (!pActiveSensor->loadParameters(data + 1, len - 1)) {
+    updateStatus(TestState::INVALID_PARAMETERS);
+    return false;
+  }
+
+  return true;
+}
+
+bool sensor::controlCommand(uint8_t* data, uint16_t len) {
+  if (len < 1 || data == nullptr || pActiveSensor == nullptr) {
+    updateStatus(TestState::INVALID_PARAMETERS);
+    return false;
+  }
+
+  SensorCmd cmd = static_cast<SensorCmd>(data[0]);
+  switch (cmd) {
+  case SensorCmd::START:
+    if (!pActiveSensor->start()) {
+      updateStatus(TestState::ERROR);
+      return false;
+    }
+    if (activeSensorID != SensorType::IONTOPHORESIS) enableAFEInterrupt(interruptHandler);
+
+    updateStatus(TestState::RUNNING);
+    break;
+  case SensorCmd::STOP:
+    if (!pActiveSensor->stop()) {
+      updateStatus(TestState::ERROR);
+      return false;
+    }
+    disableAFEInterrupt();
+    queueDataForTX(0); // Push out any remaining data in the queue
+    updateStatus(TestState::NOT_RUNNING);
+    break;
+  default: // Unknown command
+    dbgError(String("Unknown control command: ") + data[0]);
+    updateStatus(TestState::INVALID_PARAMETERS);
+    return false;
+  }
+
+  return true;
+}
+
+void sensor::interruptHandler() {
+  startDataMoverTask(); // Deal with the interrupt
+}
+
+void sensor::cleanupSensor() {
+  disableAFEInterrupt(); // Stop interrupts
+  if (pActiveSensor)
+    pActiveSensor = nullptr;
+
+  updateStatus(TestState::NOT_RUNNING);
+}
+
+void sensor::queueDataForTX(size_t minBytesRequired) {
+  if (pActiveSensor == nullptr) return;
+
+  size_t available = pActiveSensor->getNumBytesAvailable();
+  if (available == 0) return;
+
+  if (minBytesRequired > 0 && available < minBytesRequired) // Is there enough data to send?
+    return;
+
+  size_t bytesToSend = (minBytesRequired == 0) ? available : minBytesRequired;
+  std::vector<uint8_t> data = pActiveSensor->getData(bytesToSend);
+
+  dbgInfo("Queued " + String(bytesToSend) + " bytes for TX...");
+  bluetooth::startTransmitTask(data);
+}
+
+void sensor::updateStatus(sensor::TestState state) {
+  testState = state;
+  bluetooth::chrStatus.write8(static_cast<uint8_t>(sensor::testState));
+}

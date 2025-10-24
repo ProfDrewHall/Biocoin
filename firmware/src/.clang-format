@@ -1,0 +1,45 @@
+# Base style
+BasedOnStyle: LLVM
+
+# Line length
+ColumnLimit: 120
+
+# Indentation and spacing
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+BreakBeforeBraces: Attach
+AllowShortIfStatementsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortLoopsOnASingleLine: false
+
+# Pointer and reference alignment
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+# Include order and formatting
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex:           '^"'
+    Priority:        1
+    SortPriority:    0
+  - Regex:           '^<'
+    Priority:        2
+    SortPriority:    1
+SortIncludes: true
+
+# Namespace indentation
+NamespaceIndentation: All
+
+# Trailing commas (helpful for version control diffs)
+Cpp11BracedListStyle: true
+
+# Control constructor initializer formatting
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+BreakConstructorInitializers: BeforeComma
+
+# Separate definitions and declarations for clarity
+AlwaysBreakTemplateDeclarations: Yes
+
+# Comment formatting
+ReflowComments: true

@@ -1,0 +1,20 @@
+----------------------------------------------------------------------------------------------------------------------------------
+NCDrill File Report For: Biocoin_v1.3.PcbDoc   5/14/2023  1:18:25 PM
+----------------------------------------------------------------------------------------------------------------------------------
+
+Layer Pair : Top Signal to Bottom Signal
+ASCII RoundHoles File : Biocoin_v1.3.TXT
+
+Tool       Hole Size               Hole Tolerance               Hole Type       Hole Count   Plated         Tool Travel
+----------------------------------------------------------------------------------------------------------------------------------
+T1      5mil (0.127mm)                                            Round             129       PTH        6.79inch (172.54mm)
+T2      6mil (0.152mm)                                            Round             33        PTH        3.47inch (88.12mm)
+T3      7mil (0.178mm)                                            Round             1         PTH        0.00inch (0.00mm)
+T4      8mil (0.203mm)                                            Round             35        PTH        4.47inch (113.65mm)
+T5      9mil (0.229mm)                                            Round             1         PTH        0.00inch (0.00mm)
+T6      10mil (0.254mm)                                           Round             5         PTH        0.35inch (8.82mm)
+T7      42mil (1.067mm)                                           Round             2         NPTH       0.30inch (7.52mm)
+----------------------------------------------------------------------------------------------------------------------------------
+Totals                                                                              206
+
+Total Processing Time (hh:mm:ss) : 00:00:00

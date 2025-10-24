@@ -1,0 +1,84 @@
+Altium Designer Pick and Place Locations
+C:\Users\Public\Documents\Altium\Biocoin_Motherboard_v1.0_1\Project Outputs for Biocoin_Motherboard_v1.0\Pick Place\Pick Place for Biocoin_Motherboard.txt
+
+========================================================================================================================
+File Design Information:
+
+Date:       02/10/25
+Time:       14:09
+Revision:   457b285821c5e21ad6def06b4ab4015e40e3c4e9
+Variant:    No variations
+Units used: mil
+
+Designator Comment              Layer       Footprint                      Center-X(mil) Center-Y(mil) Rotation Description                                                             
+J23        1725708              TopLayer    1725708                        1953.000      1947.000      270      Connector                                                               
+S2         B3U-1000P            TopLayer    SW_B3U-1000P                   1585.000      567.000       0        "SWITCH TACTILE SPST-NO 0.05A 12V"                                      
+R16        RES                  BottomLayer 0805-RES                       1533.000      549.000       270      "Surface Mount Resistor"                                                
+R15        RES                  BottomLayer 0805-RES                       1645.000      549.000       90       "Surface Mount Resistor"                                                
+R14        RES                  BottomLayer 0805-RES                       1188.000      611.000       90       "Surface Mount Resistor"                                                
+D4         SLI-343V8RC3F        TopLayer    LED_SLI-343D_ROM               1348.000      460.000       90       "No Description Available"                                              
+D3         SLI-343V8RC3F        TopLayer    LED_SLI-343D_ROM               1189.000      460.000       90       "No Description Available"                                              
+D2         SLI-343V8RC3F        TopLayer    LED_SLI-343D_ROM               407.000       754.818       0        "No Description Available"                                              
+J22        1725708              TopLayer    1725708                        1953.000      1198.000      270      Connector                                                               
+U2         AP2171WG-7           TopLayer    SOT25_DIO-M                    681.000       560.000       0        "No Description Available"                                              
+C14        CAP                  BottomLayer 0805-CAP                       555.003       562.000       90       "Multilayer Chip Capacitor"                                             
+C13        CAP                  BottomLayer 0805-CAP                       665.003       562.000       90       "Multilayer Chip Capacitor"                                             
+R4         RES                  BottomLayer 0805-RES                       779.000       562.000       270      "Surface Mount Resistor"                                                
+J21        "Header 2x1"         TopLayer    Header_1x2                     1592.000      2057.000      0        "Pin Header 2x1"                                                        
+C12        CAP                  BottomLayer 0805-CAP                       1011.685      342.000       180      "Multilayer Chip Capacitor"                                             
+C11        CAP                  BottomLayer 0805-CAP                       612.997       339.000       270      "Multilayer Chip Capacitor"                                             
+J7         SHF-105-01-L-D-SM    TopLayer    SAMTEC_SHF-105-01-L-D-SM       1917.000      501.000       90       "SHF - Samtec Wire-to-Board 1.27mm Surface Mount Shrouded Header"       
+U1         MCP73831T-2ACI/OT    TopLayer    SOT23-5                        683.000       353.000       0        "Charger IC Lithium Ion/Polymer SOT-23-5"                               
+TP3        5011                 TopLayer    KSTN-5011_V                    702.000       142.000       0        "PC TEST POINT MULTIPURPOSE BLACK"                                      
+TP1        5010                 TopLayer    KSTN-5010_V                    380.000       142.000       0        "PC TEST POINT MULTIPURPOSE RED"                                        
+SC4        ScrewHole            TopLayer    ScrowHole                      1991.000      2495.000      0        "Scrow Hole"                                                            
+SC3        ScrewHole            TopLayer    ScrowHole                      109.000       2495.000      0        "Scrow Hole"                                                            
+SC2        ScrewHole            TopLayer    ScrowHole                      1991.000      109.000       0        "Scrow Hole"                                                            
+SC1        ScrewHole            TopLayer    ScrowHole                      109.000       109.000       0        "Scrow Hole"                                                            
+S1         1101M2S3CQE2         TopLayer    SW_1101M2S3CQE2                210.000       1178.000      180      "Slide Switch SPDT Through Hole"                                        
+R13        RES                  BottomLayer 0805-RES                       318.000       2076.000      0        "Surface Mount Resistor"                                                
+R12        RES                  BottomLayer 0805-RES                       319.000       2182.000      0        "Surface Mount Resistor"                                                
+R11        RES                  BottomLayer 0805-RES                       582.000       1939.000      0        "Surface Mount Resistor"                                                
+R10        RES                  BottomLayer 0805-RES                       563.000       2302.000      0        "Surface Mount Resistor"                                                
+R9         RES                  BottomLayer 0805-RES                       1334.000      2077.000      0        "Surface Mount Resistor"                                                
+R8         RES                  BottomLayer 0805-RES                       1115.000      2191.000      180      "Surface Mount Resistor"                                                
+R7         RES                  BottomLayer 0805-RES                       1116.000      1965.000      180      "Surface Mount Resistor"                                                
+R6         RES                  BottomLayer 0805-RES                       898.000       2319.000      180      "Surface Mount Resistor"                                                
+R5         RES                  BottomLayer 0805-RES                       1011.685      450.997       180      "Surface Mount Resistor"                                                
+R3         RES                  BottomLayer 0805-RES                       743.000       339.000       90       "Surface Mount Resistor"                                                
+R2         RES                  BottomLayer 0805-RES                       400.000       583.000       0        "Surface Mount Resistor"                                                
+R1         RES                  BottomLayer 0805-RES                       499.000       1146.000      270      "Surface Mount Resistor"                                                
+M2         DMG2305              TopLayer    SOT23-3-LEAD                   436.000       348.000       90       "P-Channel MOSFET DMG2305UX-13"                                         
+M1         DMG2305              BottomLayer SOT23-3-LEAD                   187.000       751.000       270      "P-Channel MOSFET DMG2305UX-13"                                         
+L1         IND                  TopLayer    0805-IND                       1041.997      467.000       90       "Surface Mount Inductor"                                                
+J*         S2B-PH-K-S(LF)(SN)   TopLayer    CONN_S2B-PH-K-S_JST            381.000       1715.370      270      "Connector Header Through Hole, Right Angle 2 position 0.079" (2.00mm)" 
+J20        "Header 2x1"         TopLayer    Header_1x2                     131.000       2195.000      180      "Pin Header 2x1"                                                        
+J19        "Header 2x1"         TopLayer    Header_1x2                     129.000       2057.000      180      "Pin Header 2x1"                                                        
+J18        DS1020-03RT1D        TopLayer    55203144-2                     1454.000      2471.000      180      "3 pin right angle SPE connector. Can also use the 5-520315-3-ND"       
+J17        DS1020-03RT1D        TopLayer    55203144-2                     679.000       2471.000      180      "3 pin right angle SPE connector. Can also use the 5-520315-3-ND"       
+J16        "Header 2x1"         TopLayer    Header_1x2                     575.000       2057.000      0        "Pin Header 2x1"                                                        
+J15        "Header 2x1"         TopLayer    Header_1x2                     575.000       2195.000      0        "Pin Header 2x1"                                                        
+J14        "Header 2x1"         TopLayer    Header_1x2                     1592.000      2195.000      0        "Pin Header 2x1"                                                        
+J13        855-22-008-10-001101 TopLayer    8552200810001101               1090.000      1591.000      90       855-22-008-10-001101                                                    
+J12        "Header 2x1"         TopLayer    Header_1x2                     866.000       2057.000      180      "Pin Header 2x1"                                                        
+J11        855-22-008-10-001101 TopLayer    8552200810001101               918.000       1591.000      90       855-22-008-10-001101                                                    
+J10        "Header 2x1"         TopLayer    Header_1x2                     866.000       2195.000      180      "Pin Header 2x1"                                                        
+J9         61300411121          TopLayer    CONN_61300411121_WRE           1633.000      114.000       0        "CONN HEADER VERT 4POS 2.54MM"                                          
+J8         855-22-010-10-001101 TopLayer    HDRV10W41P127_2X5_927X300X627P 1150.000      924.000       0        855-22-010-10-001101                                                    
+J6         855-22-010-10-001101 TopLayer    HDRV10W41P127_2X5_927X300X627P 1150.000      1133.000      0        855-22-010-10-001101                                                    
+J5         "Header 2x1"         TopLayer    Header_1x2                     1588.000      246.000       0        "Pin Header 2x1"                                                        
+J4         "Header 2x1"         TopLayer    Header_1x2                     1589.000      385.000       0        "Pin Header 2x1"                                                        
+J3         MBR120ESFT3G         TopLayer    SDO_SOD-123FL_ONS-L            912.000       449.500       90       "Diode Schottky 1A Surface Mount SOD-123FL"                             
+J2         NRPN031PAEN-RC       TopLayer    CONN_NRPN031_SUL               120.000       521.000       90       "No Description Available"                                              
+J1         MicroUSB-B           TopLayer    MicroUSB-B                     1120.591      129.945       90       "Conn Micro USB Type B RCP 5"                                           
+D1         "LED SMD"            TopLayer    0805-LED                       398.000       585.000       180      "Surface Mount Light Emitting Diode"                                    
+C10        CAP                  BottomLayer 0805-CAP                       321.000       1959.997      0        "Multilayer Chip Capacitor"                                             
+C9         CAP                  BottomLayer 0805-CAP                       319.000       2299.997      0        "Multilayer Chip Capacitor"                                             
+C8         CAP                  BottomLayer 0805-CAP                       1335.000      1963.997      0        "Multilayer Chip Capacitor"                                             
+C7         CAP                  BottomLayer 0805-CAP                       1334.000      2187.997      0        "Multilayer Chip Capacitor"                                             
+C6         CAP                  BottomLayer 0805-CAP                       1116.000      2077.003      180      "Multilayer Chip Capacitor"                                             
+C5         CAP                  BottomLayer 0805-CAP                       897.000       1929.003      180      "Multilayer Chip Capacitor"                                             
+C4         CAP                  BottomLayer 0805-CAP                       1115.000      2299.003      180      "Multilayer Chip Capacitor"                                             
+C3         CAP                  TopLayer    0805-CAP                       1086.000      312.997       180      "Multilayer Chip Capacitor"                                             
+C2         CAP                  BottomLayer 0805-CAP                       611.997       1146.000      270      "Multilayer Chip Capacitor"                                             
+C1         CAP                  BottomLayer 0805-CAP                       259.003       1712.000      90       "Multilayer Chip Capacitor"                                             

@@ -1,0 +1,508 @@
+*************************************************************
+FileName = Biocoin_v1.3.GBR
+AutoAperture = True
+*************************************************************
+Generating : Mechanical 29
+      File : Biocoin_v1.3.GM29
+
+    Adding Layer      : Mechanical 29
+
+
+Used DCodes :
+    D11
+*************************************************************
+
+*************************************************************
+Generating : Mechanical 15
+      File : Biocoin_v1.3.GM15
+
+    Adding Layer      : Mechanical 15
+
+
+Used DCodes :
+    D10
+    D11
+    D121
+*************************************************************
+
+*************************************************************
+Generating : Mechanical 13
+      File : Biocoin_v1.3.GM13
+
+    Adding Layer      : Mechanical 13
+
+
+Used DCodes :
+    D11
+    D12
+    D13
+    D14
+    D18
+    D20
+    D120
+*************************************************************
+
+*************************************************************
+Generating : Mechanical 3
+      File : Biocoin_v1.3.GM3
+
+    Adding Layer      : Mechanical 3
+
+
+Used DCodes :
+    D119
+*************************************************************
+
+*************************************************************
+Generating : Mechanical 2
+      File : Biocoin_v1.3.GM2
+
+    Adding Layer      : Mechanical 2
+
+
+Used DCodes :
+    D119
+*************************************************************
+
+*************************************************************
+Generating : Mechanical 1
+      File : Biocoin_v1.3.GM1
+
+    Adding Layer      : Mechanical 1
+
+
+Used DCodes :
+*************************************************************
+
+*************************************************************
+Generating : Keep-Out Layer
+      File : Biocoin_v1.3.GKO
+
+    Adding Layer      : Keep-Out Layer
+
+
+Used DCodes :
+    D103
+*************************************************************
+
+*************************************************************
+Generating : Bottom Overlay
+      File : Biocoin_v1.3.GBO
+
+    Adding Layer      : Bottom Overlay
+
+
+Used DCodes :
+    D13
+    D14
+*************************************************************
+
+*************************************************************
+Generating : Bottom Paste
+      File : Biocoin_v1.3.GBP
+
+    Adding Layer      : Bottom Paste
+
+    Adding Layer      : Bottom Signal
+
+    Adding Layer      : Multi-Layer
+
+
+Used DCodes :
+    D113
+    D114
+    D115
+*************************************************************
+
+*************************************************************
+Generating : Bottom Solder
+      File : Biocoin_v1.3.GBS
+
+    Adding Layer      : Bottom Solder
+
+    Adding Layer      : Bottom Signal
+
+    Adding Layer      : Multi-Layer
+
+
+Used DCodes :
+    D92
+    D116
+    D117
+    D118
+*************************************************************
+
+*************************************************************
+Generating : Top Solder
+      File : Biocoin_v1.3.GTS
+
+    Adding Layer      : Top Solder
+
+    Adding Layer      : Top Signal
+
+    Adding Layer      : Multi-Layer
+
+
+Used DCodes :
+    D56
+    D57
+    D58
+    D59
+    D60
+    D61
+    D62
+    D63
+    D64
+    D65
+    D66
+    D67
+    D68
+    D69
+    D70
+    D71
+    D72
+    D73
+    D74
+    D75
+    D76
+    D77
+    D78
+    D79
+    D80
+    D81
+    D82
+    D83
+    D84
+    D85
+    D86
+    D87
+    D88
+    D89
+    D90
+    D91
+    D92
+    D93
+    D94
+*************************************************************
+
+*************************************************************
+Generating : Top Paste
+      File : Biocoin_v1.3.GTP
+
+    Adding Layer      : Top Paste
+
+    Adding Layer      : Top Signal
+
+    Adding Layer      : Multi-Layer
+
+
+Used DCodes :
+    D21
+    D22
+    D23
+    D24
+    D25
+    D26
+    D27
+    D28
+    D29
+    D30
+    D31
+    D32
+    D33
+    D34
+    D35
+    D36
+    D37
+    D38
+    D39
+    D40
+    D41
+    D42
+    D43
+    D44
+    D45
+    D46
+    D47
+    D48
+    D49
+    D50
+    D51
+    D52
+    D53
+    D54
+    D55
+*************************************************************
+
+*************************************************************
+Generating : Top Overlay
+      File : Biocoin_v1.3.GTO
+
+    Adding Layer      : Top Overlay
+
+
+Used DCodes :
+    D10
+    D11
+    D12
+    D13
+    D14
+    D15
+    D16
+    D17
+    D18
+    D19
+    D20
+*************************************************************
+
+*************************************************************
+Generating : Top Pad Master
+      File : Biocoin_v1.3.GPT
+
+    Adding Layer      : Top Signal
+
+    Adding Layer      : Multi-Layer
+
+
+Used DCodes :
+    D21
+    D22
+    D23
+    D24
+    D25
+    D26
+    D27
+    D28
+    D29
+    D30
+    D31
+    D32
+    D33
+    D34
+    D35
+    D36
+    D37
+    D38
+    D39
+    D40
+    D41
+    D42
+    D43
+    D47
+    D48
+    D49
+    D50
+    D51
+    D52
+    D53
+    D54
+    D55
+    D95
+    D96
+    D97
+    D98
+    D107
+*************************************************************
+
+*************************************************************
+Generating : Bottom Pad Master
+      File : Biocoin_v1.3.GPB
+
+    Adding Layer      : Bottom Signal
+
+    Adding Layer      : Multi-Layer
+
+
+Used DCodes :
+    D107
+    D113
+    D114
+    D115
+*************************************************************
+
+*************************************************************
+Generating : Bottom Signal
+      File : Biocoin_v1.3.GBL
+
+    Adding Layer      : Bottom Signal
+
+    Adding Layer      : Multi-Layer
+
+
+Used DCodes :
+    D10
+    D14
+    D17
+    D40
+    D99
+    D100
+    D101
+    D102
+    D103
+    D104
+    D105
+    D106
+    D107
+    D108
+    D109
+    D110
+    D111
+    D112
+    D113
+    D114
+    D115
+*************************************************************
+
+*************************************************************
+Generating : GND2
+      File : Biocoin_v1.3.G4
+
+    Adding Layer      : GND2
+
+    Adding Layer      : Multi-Layer
+
+
+Used DCodes :
+    D14
+    D17
+    D40
+    D103
+    D108
+    D109
+    D110
+    D111
+*************************************************************
+
+*************************************************************
+Generating : Power
+      File : Biocoin_v1.3.G3
+
+    Adding Layer      : Power
+
+    Adding Layer      : Multi-Layer
+
+
+Used DCodes :
+    D17
+    D40
+    D100
+    D101
+    D102
+    D103
+    D108
+    D110
+    D111
+    D112
+*************************************************************
+
+*************************************************************
+Generating : Middle Signal
+      File : Biocoin_v1.3.G2
+
+    Adding Layer      : Middle Signal
+
+    Adding Layer      : Multi-Layer
+
+
+Used DCodes :
+    D10
+    D14
+    D17
+    D40
+    D99
+    D100
+    D101
+    D102
+    D103
+    D104
+    D108
+    D109
+    D110
+    D111
+*************************************************************
+
+*************************************************************
+Generating : GND1
+      File : Biocoin_v1.3.G1
+
+    Adding Layer      : GND1
+
+    Adding Layer      : Multi-Layer
+
+
+Used DCodes :
+    D14
+    D40
+    D102
+    D103
+    D108
+    D109
+    D110
+    D111
+*************************************************************
+
+*************************************************************
+Generating : Top Signal
+      File : Biocoin_v1.3.GTL
+
+    Adding Layer      : Top Signal
+
+    Adding Layer      : Multi-Layer
+
+
+Used DCodes :
+    D10
+    D14
+    D17
+    D21
+    D22
+    D23
+    D24
+    D25
+    D26
+    D27
+    D28
+    D29
+    D30
+    D31
+    D32
+    D33
+    D34
+    D35
+    D36
+    D37
+    D38
+    D39
+    D40
+    D41
+    D42
+    D43
+    D47
+    D48
+    D49
+    D50
+    D51
+    D52
+    D53
+    D54
+    D55
+    D95
+    D96
+    D97
+    D98
+    D99
+    D100
+    D101
+    D102
+    D103
+    D104
+    D105
+    D106
+    D107
+    D108
+    D109
+    D110
+    D111
+    D112
+*************************************************************
+
