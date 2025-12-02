@@ -324,8 +324,7 @@ AD5940Err EChem_SWV::generateInitSequence(void) {
   AD5940_AFECtrlS(AFECTRL_ALL, bFALSE); // Init all to disable state
 
   AD5940_ConfigureAFEReferences(true, true, true, true);
-  AD5940_ConfigureLPLoop(config.VzeroStart, config.Estart + config.Estep, config.LpTiaRf, config.LpTiaRl,
-                         config.ExtRtia, config.LptiaRtiaSel);
+  configureLPLoop();
   AD5940_ConfigureDSP(ADCMUXN_LPTIA0_N, ADCMUXP_LPTIA0_P, config.ADCPgaGain, config.ADCSinc2Osr, config.ADCSinc3Osr);
 
   HSLoopCfg_Type hs_loop = {0};
@@ -437,7 +436,7 @@ AD5940Err EChem_SWV::generateDACSequence(void) {
     /* Reset bIsFirstRun at end of function. */
     int32_t DACSeqLenMax;
     StepsRemainning = config.StepNumber;
-    DACSeqLenMax = (int32_t)config.MaxSeqLen - (int32_t)config.ADCSeqInfo.SeqLen - 
+    DACSeqLenMax = (int32_t)config.MaxSeqLen - (int32_t)config.InitSeqInfo.SeqLen - 
                    (int32_t)config.ADCSeqInfo.SeqLen;
     if (DACSeqLenMax < SEQLEN_ONESTEP * 4) return AD5940ERR_SEQLEN; /* No enough sequencer SRAM available */
     DACSeqLenMax -= SEQLEN_ONESTEP * 2;                             /* Reserve commands each block */
