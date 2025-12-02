@@ -12,7 +12,7 @@ namespace sensor {
     DPV = 0x03,
     IMP = 0x04,
     OCP = 0x05,
-    //SWV = 0x05,
+    SWV = 0x06,
     //EIS = 0x06,
     TEMP = 0x10,
     IONTOPHORESIS = 0x20

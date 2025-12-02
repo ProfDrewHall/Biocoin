@@ -7,6 +7,7 @@
 #include "sensors/EChem_CA.h"
 #include "sensors/EChem_CV.h"
 #include "sensors/EChem_DPV.h"
+#include "sensors/EChem_SWV.h"
 #include "sensors/EChem_Imp.h"
 #include "sensors/EChem_OCP.h"
 #include "sensors/EChem_Temp.h"
@@ -34,21 +35,24 @@ void sensor::init() {
 }
 
 std::unique_ptr<Sensor> sensor::createSensor(sensor::SensorType type) {
+  dbgInfo("Creating sensor of type: " + String(static_cast<uint8_t>(type)));
   switch (type) {
   case SensorType::CA:
-    return std::unique_ptr<sensor::EChem_CA>();
+    return std::unique_ptr<Sensor>(new sensor::EChem_CA());
   case SensorType::CV:
-    return std::unique_ptr<sensor::EChem_CV>();
+    return std::unique_ptr<Sensor>(new sensor::EChem_CV());
   case SensorType::DPV:
-    return std::unique_ptr<sensor::EChem_DPV>();
+    return std::unique_ptr<Sensor>(new sensor::EChem_DPV());
+  case SensorType::SWV:
+    return std::unique_ptr<Sensor>(new sensor::EChem_SWV());
   case SensorType::IMP:
-    return std::unique_ptr<sensor::EChem_Imp>();
+    return std::unique_ptr<Sensor>(new sensor::EChem_Imp());
   case SensorType::OCP:
-    return std::unique_ptr<sensor::EChem_OCP>();
+    return std::unique_ptr<Sensor>(new sensor::EChem_OCP());
   case SensorType::TEMP:
-    return std::unique_ptr<sensor::EChem_Temp>();
+    return std::unique_ptr<Sensor>(new sensor::EChem_Temp());
   case SensorType::IONTOPHORESIS:
-    return std::unique_ptr<sensor::Iontophoresis>();
+    return std::unique_ptr<Sensor>(new sensor::Iontophoresis());
   case SensorType::None:
   default:
     return nullptr;
