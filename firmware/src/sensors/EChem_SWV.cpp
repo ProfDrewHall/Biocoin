@@ -278,11 +278,13 @@ AD5940Err EChem_SWV::configureLPLoop(void) {
 
   lp_loop.LpDacCfg.LpdacSel = LPDAC0;
   // just initial DAC settings before SWV truly begins
+    const float dir = (config.Estop > config.Estart) ? 1.0f : -1.0f;
+
   lp_loop.LpDacCfg.DacData6Bit =
       (uint32_t)((config.VzeroStart - AD5940_MIN_DAC_OUTPUT) / AD5940_6BIT_DAC_1LSB); // WE voltage
   lp_loop.LpDacCfg.DacData12Bit =
       (int32_t)(lp_loop.LpDacCfg.DacData6Bit * 64 +
-                (config.RampStartVolt - config.Eamplitude + config.Estep) / AD5940_12BIT_DAC_1LSB); // RE voltage
+                (config.RampStartVolt + dir * config.Eamplitude - dir * config.Estep) / AD5940_12BIT_DAC_1LSB); // RE voltage
 
   if (lp_loop.LpDacCfg.DacData12Bit < lp_loop.LpDacCfg.DacData6Bit * 64) lp_loop.LpDacCfg.DacData12Bit--;
   // truncate if needed
@@ -308,10 +310,12 @@ void EChem_SWV::configureWaveformParameters() {
 
   config.SampleDelay = 0.75 * config.PulseWidth;
 
+  config.Eamplitude = 2.0f * config.Eamplitude;
+
   //   Vbias = -Ewe, so RE ramps opposite the desired WE–RE sweep
   const float dir = (config.Estop > config.Estart) ? 1.0f : -1.0f;
-  config.RampStartVolt = -config.Estart + dir * (-2.0f * config.Eamplitude) + dir * config.Estep;
-  config.RampPeakVolt = -config.Estop + dir * (-2.0f * config.Eamplitude);
+  config.RampStartVolt = -config.Estart + dir * (-1.0f * config.Eamplitude) + dir * config.Estep;
+  config.RampPeakVolt = -config.Estop + dir * (-1.0f * config.Eamplitude);
 }
 
 /* Generate init sequence for CV. This runs only one time. */
@@ -454,8 +458,7 @@ AD5940Err EChem_SWV::generateDACSequence(void) {
     config.DACCodePerRamp = (int32_t)config.DACCodePerRamp;
 #endif
 
-    config.CurrRampCode =
-        config.RampStartVolt / AD5940_12BIT_DAC_1LSB + (config.DACCodePerStep - config.DACCodePerRamp);
+    config.CurrRampCode = config.RampStartVolt / AD5940_12BIT_DAC_1LSB;
 
     rampState = SWVRampState::Start; // Reset the ramp state
     config.CurrStepPos = 0;

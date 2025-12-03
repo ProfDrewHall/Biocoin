@@ -122,7 +122,7 @@ class SquareWaveVoltammetry(BaseTechnique):
             raise ValueError('E_pulse must be > 0')
         if pulse_period <= 3 or pulse_period > 300000:
             raise ValueError('pulse_period must be between 3 ms and 300,000 ms')
-        if processing_interval < (pulse_period / 1000.0):
+        if processing_interval < ((pulse_period/2) / 1000.0):
             raise ValueError('processing_interval must be ≥ pulse_width(in seconds)')
         if channel not in {0, 1, 2, 3}:
             raise ValueError('channel must be an integer between 0 and 3')
