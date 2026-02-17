@@ -152,7 +152,7 @@ class CyclicVoltammetry(BaseTechnique):
 
         # Store reconstructed voltage vector
         self.V = self.calc_voltage_vector(E_start, E_vertex1, E_vertex2, E_step)
-        self.duration = len(self.V) * pulse_width / 1000.0  # convert ms to seconds
+        self.duration = max(len(self.V) * pulse_width / 1000.0, 2)  # convert ms to seconds
 
         # Struct layout (packed, little-endian) with a leading technique ID byte:
         # <B f f f f f f f B

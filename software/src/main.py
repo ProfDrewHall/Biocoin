@@ -34,6 +34,8 @@ import pandas as pd
 from biocoin.device import BioCoinDevice
 from biocoin.techniques import (
     OpenCircuitPotential,
+    SquareWaveVoltammetry,
+    DifferentialPulseVoltammetry,
     Temperature,
     Iontophoresis
 )
@@ -100,7 +102,7 @@ async def main():
         # output_path.parent.mkdir(parents=True, exist_ok=True)
         # df.to_csv(output_path, index=False)
 
-        # # Run a DPV measurement
+        # Run a DPV measurement
         # DPV = DifferentialPulseVoltammetry(device)
         # await DPV.configure(
         #     processing_interval=1.0,
@@ -121,6 +123,29 @@ async def main():
         # output_path = Path('./results/DPV_output.csv')
         # output_path.parent.mkdir(parents=True, exist_ok=True)
         # df.to_csv(output_path, index=False)
+
+        # Run an SWV measurement
+        frequency = 100
+        SWV = SquareWaveVoltammetry(device)
+        await SWV.configure(
+            processing_interval=100*((1/frequency)/2),
+            max_current=100.0,
+            E_start=-200.0,
+            E_stop=200.0,
+            E_step=50.0,
+            E_amplitude=100.0,
+            pulse_period=1/frequency*1000,
+            channel=0,
+        )
+        SWV_data = await SWV.run()
+        logging.info(f'SWV Data:\n {SWV_data}')
+
+        logging.info('Saving SWV data to CSV file...')
+        df = pd.DataFrame(SWV_data, columns=['Voltage (mV)', 'Current (uA)'])
+        output_path = Path('./results/SWV_output.csv')
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(output_path, index=False)
+
 
         # Run an impedance measurement
         # Imp = Impedance(device)

@@ -11,8 +11,8 @@ Iontophoresis. The software enables data acquisition, processing, and export to 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/ProfDrewHall/BioCoin-Control-Internal.git
-cd BioCoin-Control-Internal
+git clone https://github.com/ProfDrewHall/BioCoin.git
+cd BioCoin/software
 ```
 
 ### 2. Install the package manager `uv`
@@ -87,14 +87,14 @@ MIT License
 
 ## 👤 Authors
 
-**Drew A. Hall**  
-University of California, San Diego  
+**Drew A. Hall**
+University of California, San Diego
 Contact: drewhall@ucsd.edu
 
-**Risab Sankar**  
-University of California, San Diego  
+**Risab Sankar**
+University of California, San Diego
 Contact: rsankar@ucsd.edu
 
-**Tyler Hack**  
-University of California, San Diego  
+**Tyler Hack**
+University of California, San Diego
 Contact: thack@ucsd.edu

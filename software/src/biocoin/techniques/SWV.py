@@ -1,8 +1,8 @@
 ########################################################################################################################
 #
-# BioCoin Differential Pulsed Voltammetry (DPV) Technique
+# BioCoin Square Wave Voltammetry (SWV) Technique
 #
-# Implements the DPV measurement protocol for the BioCoin device. Handles configuration, execution, BLE data parsing, 
+# Implements the SWV measurement protocol for the BioCoin device. Handles configuration, execution, BLE data parsing, 
 # and conversion of streamed bytes to current readings. Built on top of the BaseTechnique class.
 #
 # Written By:
@@ -14,7 +14,7 @@
 #   - No retry logic if BLE write or notification fails
 #
 # Revision History:
-#   - 17 Aug 2025: Initial implementation of DPV technique
+#   - 1 Dec 2025: Initial implementation of SWV technique
 #
 # Notes:
 #   - Should we reconstruct the voltage vector or just send it over BLE?
@@ -30,11 +30,11 @@ from biocoin.device import BioCoinDevice
 from biocoin.techniques.base_technique import BaseTechnique
 
 
-class DifferentialPulseVoltammetry(BaseTechnique):
+class SquareWaveVoltammetry(BaseTechnique):
     """
-    Implements the differential pulse voltammetry (DPV) technique using the BioCoin device.
+    Implements the square wave voltammetry (SWV) technique using the BioCoin device.
 
-    DPV applies a staircase baseline (Estart→Estop in Estep increments). At each step a pulse of amplitude Epulse (mV) and 
+    SWV applies a staircase baseline (Estart→Estop in Estep increments). At each step a pulse of amplitude Epulse (mV) and 
     width PulseWidth (ms) is superimposed; the device returns a (typically differential) current sample per step. For 
     plotting, we associate each returned current with the pulse-peak potential: E_base + Epulse.
 
@@ -52,7 +52,7 @@ class DifferentialPulseVoltammetry(BaseTechnique):
 
     def calc_voltage_vector(self, E_start: float, E_stop: float, E_step: float) -> np.ndarray:
         """
-        Construct the DPV voltage vector (pulse-peak potentials per step)
+        Construct the SWV voltage vector (pulse-peak potentials per step)
 
         Parameters:
             - E_start (float): Starting baseline potential (mV)
@@ -85,30 +85,28 @@ class DifferentialPulseVoltammetry(BaseTechnique):
         max_current: float,
         E_start: float,
         E_stop: float,
-        E_pulse: float,
+        E_amplitude: float,
         E_step: float,
-        pulse_width: float,
         pulse_period: float,
         channel: int,
     ) -> None:
         """
-        Pack and send the DPV configuration to the device
+        Pack and send the SWV configuration to the device
 
         Parameters:
             - processing_interval (float): Seconds between MCU processing interrupts (s)
             - max_current (float): Maximum expected current (µA), (0, 3000]
             - E_start (float): Start baseline potential (mV), within [-2200, 2200]
             - E_stop (float): Stop baseline potential (mV), within [-2200, 2200]
-            - E_pulse (float): Pulse amplitude (mV), > 0
+            - E_amplitude (float): Pulse amplitude (mV), > 0
             - E_step (float): Baseline step magnitude (mV), > 0
-            - pulse_width (float): Pulse width (ms), (3, 300000]
             - pulse_period (float): Period per step (ms), must be ≥ PulseWidth
             - channel (int): Working electrode channel (0-3)
 
         Returns:
             - None
         """
-        logging.info('Sending DPV technique parameters...')
+        logging.info('Sending SWV technique parameters...')
 
         # Basic sanity checks
         if processing_interval <= 0:
@@ -120,13 +118,11 @@ class DifferentialPulseVoltammetry(BaseTechnique):
                 raise ValueError(f'{name} must be between -2200 and +2200 mV')
         if E_step == 0:
             raise ValueError('E_step must be nonzero')
-        if E_pulse <= 0:
+        if E_amplitude <= 0:
             raise ValueError('E_pulse must be > 0')
-        if pulse_width <= 3 or pulse_width > 300000:
-            raise ValueError('pulse_width must be between 3 ms and 300,000 ms')
-        if pulse_period < pulse_width:
-            raise ValueError('pulse_period must be ≥ pulse_width')
-        if processing_interval < (pulse_width / 1000.0):
+        if pulse_period <= 3 or pulse_period > 300000:
+            raise ValueError('pulse_period must be between 3 ms and 300,000 ms')
+        if processing_interval < ((pulse_period/2) / 1000.0):
             raise ValueError('processing_interval must be ≥ pulse_width(in seconds)')
         if channel not in {0, 1, 2, 3}:
             raise ValueError('channel must be an integer between 0 and 3')
@@ -136,28 +132,26 @@ class DifferentialPulseVoltammetry(BaseTechnique):
         self.duration = max(len(self.V) * (pulse_period / 1000.0), 2)
 
         # Struct layout (packed, little-endian) with a leading technique ID byte:
-        # <B f f f f f f f f B
-        #  ^  ^ ^ ^ ^ ^ ^ ^ ^ ^
-        #  |  | | | | | | | | channel (uint8)
-        #  |  | | | | | | | PulsePeriod (float)
-        #  |  | | | | | | PulseWidth (float)
-        #  |  | | | | | Estep (float)
-        #  |  | | | | Epulse (float)
-        #  |  | | | Estop (float)
-        #  |  | | Estart (float)
-        #  |  | max_current (float)
+        # <B f f f f f f f B
+        #  ^ ^ ^ ^ ^ ^ ^ ^ ^ 
+        #  | | | | | | | | | channel (uint8)
+        #  | | | | | | | | PulsePeriod (float)
+        #  | | | | | | Estep (float)
+        #  | | | | | Eamplitude (float)
+        #  | | | | Estop (float)
+        #  | | | Estart (float)
+        #  | | max_current (float)
         #  | processing_interval (float)
         #  technique ID (uint8)
         payload = struct.pack(
-            '<BffffffffB',
-            self.Technique.DPV,
+            '<BfffffffB',
+            self.Technique.SWV,
             processing_interval,
             max_current,
             E_start,
             E_stop,
-            E_pulse,
+            E_amplitude,
             E_step,
-            pulse_width,
             pulse_period,
             channel,
         )
@@ -167,7 +161,7 @@ class DifferentialPulseVoltammetry(BaseTechnique):
 
     async def run(self) -> np.ndarray:
         """
-        Start the DPV measurement and return an array of [V,I] points
+        Start the SWV measurement and return an array of [V,I] points
 
         Returns:
             - np.ndarray: 2D array with columns [pulse-peak potential (mV), current (µA)]
@@ -201,12 +195,12 @@ class DifferentialPulseVoltammetry(BaseTechnique):
         except asyncio.QueueEmpty:
             pass
 
-        logging.info(f'Received {len(results)} data points from DPV.')
+        logging.info(f'Received {len(results)} data points from SWV.')
 
         # Pairwise differences: [a,b,c,d,...] -> [a-b, c-d, ...]
         num_pts = len(results) // 2
         if len(results) % 2 != 0:
-            logging.warning('Odd number of DPV samples received; dropping last sample.')
+            logging.warning('Odd number of SWV samples received; dropping last sample.')
         diffs = (
             np.asarray(results[: 2 * num_pts], dtype=float)[0::2]
             - np.asarray(results[: 2 * num_pts], dtype=float)[1::2]
@@ -215,7 +209,7 @@ class DifferentialPulseVoltammetry(BaseTechnique):
 
     async def notification_handler(self, _: int, data: bytes) -> None:
         """
-        Parse incoming DPV BLE data as 4-byte floats (little-endian)
+        Parse incoming SWV BLE data as 4-byte floats (little-endian)
 
         Parameters:
             - data (bytes): Raw byte stream from BLE
@@ -229,4 +223,4 @@ class DifferentialPulseVoltammetry(BaseTechnique):
             del self.byte_buffer[:4]
             value = struct.unpack('<f', chunk)[0]
             self.data_queue.put_nowait(value)
-            logging.debug(f'Received DPV value: {value}')
+            logging.debug(f'Received SWV value: {value}')

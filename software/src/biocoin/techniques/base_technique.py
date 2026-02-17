@@ -57,6 +57,7 @@ class BaseTechnique(ABC):
         DPV: int = 0x03
         IMP: int = 0x04
         OCP: int = 0x05
+        SWV: int = 0x06
         TEMP: int = 0x10
         IONTOPHORESIS: int = 0x20
 

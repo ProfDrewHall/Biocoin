@@ -22,6 +22,7 @@ This code runs on an nRF52840-based board and controls an Analog Devices AD5940 
 
 ### Prerequisites
 - [PlatformIO](https://platformio.org/) (VS Code extension or CLI)
+- Note: If you are building on a linux-based platform, you'll need to install the udev rules (https://docs.platformio.org/en/latest/core/installation/udev-rules.html)
 - Board: Biocoin board based on nRF52840
 - Tooling for DFU (optional): Nordic `nrfutil`
 
