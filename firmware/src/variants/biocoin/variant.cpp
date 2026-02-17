@@ -18,6 +18,9 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+// Module: BioCoin local board variant implementation.
+// Purpose: Provide Arduino pin map and boot-time board pin initialization.
+
 #include "variant.h"
 #include "wiring_constants.h"
 #include "wiring_digital.h"
@@ -109,4 +112,3 @@ void initVariant()
   pinMode(PIN_NEOPIXEL_POWER, OUTPUT);
   digitalWrite(PIN_NEOPIXEL_POWER, HIGH);
 }
-

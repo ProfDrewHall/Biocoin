@@ -6,7 +6,6 @@
 #include "sensors/Sensor.h"
 #include "util/debug_log.h"
 
-using namespace sensor;
 
 // Structure for how parameters are passed down from the host
 struct CA_PARAMETERS {
@@ -17,7 +16,7 @@ struct CA_PARAMETERS {
   uint8_t channel;      // Channel (0-3) to select
 } __attribute__((packed));
 
-EChem_CA::EChem_CA() {
+sensor::EChem_CA::EChem_CA() {
   // Initialize structures to known values
   memset(&config, 0, sizeof(CAConfig_Type));
   config.bParaChanged = bFALSE; // Flag used to indicate parameters have been set
@@ -48,7 +47,7 @@ EChem_CA::EChem_CA() {
   channel = 0;
 }
 
-bool EChem_CA::loadParameters(uint8_t* data, uint16_t len) {
+bool sensor::EChem_CA::loadParameters(uint8_t* data, uint16_t len) {
   dbgInfo("Updating CA parameters...");
   if (len != sizeof(CA_PARAMETERS)) { // Check to ensure the size is correct
     dbgError(String("Incorrect payload size! Expected ") + String(sizeof(CA_PARAMETERS)) + String(" but received ") +
@@ -86,7 +85,7 @@ bool EChem_CA::loadParameters(uint8_t* data, uint16_t len) {
   return true;
 }
 
-bool EChem_CA::start() {
+bool sensor::EChem_CA::start() {
   if (config.bParaChanged != bTRUE) return false; // Parameters have not been set
 
   clear();                    // Clear the data queue
@@ -114,7 +113,7 @@ bool EChem_CA::start() {
   return true;
 }
 
-bool EChem_CA::stop() {
+bool sensor::EChem_CA::stop() {
   AD5940_ReadReg(REG_AFE_ADCDAT); /* Any SPI Operation can wakeup AFE */
   /* There is chance this operation will fail because sequencer could put AFE back
       to hibernate mode just after waking up. Use STOPSYNC is better. */
@@ -127,7 +126,7 @@ bool EChem_CA::stop() {
 }
 
 /* Initialize AD5940 basic blocks like clock */
-int32_t EChem_CA::initAD5940(void) {
+int32_t sensor::EChem_CA::initAD5940(void) {
   AD5940_HWReset();                                // Hardware reset
   AD5940_Initialize();                             // Platform configuration
   AD5940_ConfigureClock();                         // Step 1 - Configure clock
@@ -144,7 +143,7 @@ int32_t EChem_CA::initAD5940(void) {
 /**
  * @brief Initialize the amperometric test. Call this function every time before starting amperometric test.
  */
-AD5940Err EChem_CA::setupMeasurement(void) {
+AD5940Err sensor::EChem_CA::setupMeasurement(void) {
   AD5940Err error = AD5940ERR_OK;
   SEQCfg_Type seq_cfg;
   FIFOCfg_Type fifo_cfg;
@@ -217,7 +216,7 @@ AD5940Err EChem_CA::setupMeasurement(void) {
 }
 
 /* Generate init sequence for CA. This runs only one time. */
-AD5940Err EChem_CA::generateInitSequence(void) {
+AD5940Err sensor::EChem_CA::generateInitSequence(void) {
   AD5940Err error = AD5940ERR_OK;
   uint32_t const* pSeqCmd;
   uint32_t SeqLen;
@@ -257,7 +256,7 @@ AD5940Err EChem_CA::generateInitSequence(void) {
 }
 
 /* Generate measurement sequence for CA. This runs indefinitely until test is ended. */
-AD5940Err EChem_CA::generateMeasSequence(void) {
+AD5940Err sensor::EChem_CA::generateMeasSequence(void) {
   AD5940Err error = AD5940ERR_OK;
   uint32_t const* pSeqCmd;
   uint32_t SeqLen;
@@ -301,7 +300,7 @@ AD5940Err EChem_CA::generateMeasSequence(void) {
 }
 
 // Function to handle interrupts
-void EChem_CA::ISR(void) {
+void sensor::EChem_CA::ISR(void) {
   if (!isRunning()) return; // Check that the technique is running
 
   std::vector<uint32_t> buf;
@@ -324,7 +323,7 @@ void EChem_CA::ISR(void) {
   if (!buf.empty()) processAndStoreData(buf.data(), static_cast<uint32_t>(buf.size()));
 }
 
-bool EChem_CA::processAndStoreData(uint32_t* pData, uint32_t numSamples) {
+bool sensor::EChem_CA::processAndStoreData(uint32_t* pData, uint32_t numSamples) {
   for (uint32_t i = 0; i < numSamples; i++) {
     pData[i] &= 0xffff;
     push(calculateCurrent(pData[i], config.ADCPgaGain, config.ADCRefVolt, config.RtiaCalValue.Magnitude));
@@ -333,6 +332,6 @@ bool EChem_CA::processAndStoreData(uint32_t* pData, uint32_t numSamples) {
   return true;
 }
 
-void EChem_CA::printResult(void) {
+void sensor::EChem_CA::printResult(void) {
   forEach([](const float& i_uA) { Serial.printf("    I = %.5f uA\n", i_uA); });
 }

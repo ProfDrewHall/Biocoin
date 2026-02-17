@@ -7,7 +7,6 @@
 #include "sensors/SensorManager.h"
 #include "util/debug_log.h"
 
-using namespace sensor;
 
 // Structure for DPV parameters
 struct DPV_PARAMETERS {
@@ -23,7 +22,7 @@ struct DPV_PARAMETERS {
   uint8_t channel;
 } __attribute__((packed));
 
-EChem_DPV::EChem_DPV() {
+sensor::EChem_DPV::EChem_DPV() {
   // Initialize structures to known values
   memset(&config, 0, sizeof(DPVConfig_Type));
 
@@ -55,7 +54,7 @@ EChem_DPV::EChem_DPV() {
   config.ExtRtiaVal = 10000000; // value of external TIA resistor (if used). Update as needed.
 }
 
-bool EChem_DPV::loadParameters(uint8_t* data, uint16_t len) {
+bool sensor::EChem_DPV::loadParameters(uint8_t* data, uint16_t len) {
   dbgInfo("Updating DPV parameters...");
   if (len != sizeof(DPV_PARAMETERS)) { // Check to ensure the size is correct
     dbgError(String("Incorrect payload size! Expected ") + String(sizeof(DPV_PARAMETERS)) + String(" but received ") +
@@ -107,7 +106,7 @@ bool EChem_DPV::loadParameters(uint8_t* data, uint16_t len) {
   return true;
 }
 
-bool EChem_DPV::start() {
+bool sensor::EChem_DPV::start() {
   if (config.bParaChanged != bTRUE) return false; // Parameters have not been set
 
   clear();                       // Clear the data queue
@@ -149,7 +148,7 @@ bool EChem_DPV::start() {
   return true;
 }
 
-bool EChem_DPV::stop() {
+bool sensor::EChem_DPV::stop() {
   if (AD5940_WakeUp(10) > 10) /* Wakeup AFE by read register, read 10 times at most */
     return false;             /* Wakeup Failed */
   /* Start Wupt right now */
@@ -166,7 +165,7 @@ bool EChem_DPV::stop() {
 }
 
 /* Initialize AD5940 basic blocks like clock */
-int32_t EChem_DPV::initAD5940(void) {
+int32_t sensor::EChem_DPV::initAD5940(void) {
   AD5940_HWReset();                                  // Hardware reset
   AD5940_Initialize();                               // Platform configuration
   AD5940_ConfigureClock();                           // Step 1 - Configure clock
@@ -183,7 +182,7 @@ int32_t EChem_DPV::initAD5940(void) {
 /**
  * @brief Initialize the test. Call this function every time before starting  test.
  */
-AD5940Err EChem_DPV::setupMeasurement(void) {
+AD5940Err sensor::EChem_DPV::setupMeasurement(void) {
   AD5940Err error = AD5940ERR_OK;
   SEQCfg_Type seq_cfg;
   FIFOCfg_Type fifo_cfg;
@@ -256,7 +255,7 @@ AD5940Err EChem_DPV::setupMeasurement(void) {
   return AD5940ERR_OK;
 }
 
-AD5940Err EChem_DPV::configureLPLoop(void) {
+AD5940Err sensor::EChem_DPV::configureLPLoop(void) {
   LPLoopCfg_Type lp_loop = {0};
   lp_loop.LpAmpCfg.LpAmpSel = LPAMP0;
   lp_loop.LpAmpCfg.LpAmpPwrMod = LPAMPPWR_NORM;
@@ -297,7 +296,7 @@ AD5940Err EChem_DPV::configureLPLoop(void) {
   return AD5940ERR_OK;
 }
 
-void EChem_DPV::configureWaveformParameters() {
+void sensor::EChem_DPV::configureWaveformParameters() {
   config.bSqrWaveHiLevel = bTRUE;
   rampState = DPVRampState::Start; // Reset the ramp state
   config.bFirstDACSeq = bTRUE;
@@ -312,7 +311,7 @@ void EChem_DPV::configureWaveformParameters() {
 }
 
 /* Generate init sequence for DPV. This runs only one time. */
-AD5940Err EChem_DPV::generateInitSequence(void) {
+AD5940Err sensor::EChem_DPV::generateInitSequence(void) {
   AD5940_AFECtrlS(AFECTRL_ALL, bFALSE); // Init all to disable state
   AD5940_ConfigureAFEReferences(true, true, false, false);
   configureLPLoop();
@@ -332,7 +331,7 @@ AD5940Err EChem_DPV::generateInitSequence(void) {
  * @return return error code.
  */
 // ADC sampling sequence for the "high" part of the DPV pulse
-AD5940Err EChem_DPV::generateADCSequenceHigh(void) {
+AD5940Err sensor::EChem_DPV::generateADCSequenceHigh(void) {
   AD5940Err error = AD5940ERR_OK;
   const uint32_t* pSeqCmd;
   uint32_t SeqLen;
@@ -375,7 +374,7 @@ AD5940Err EChem_DPV::generateADCSequenceHigh(void) {
 }
 
 // ADC sampling sequence for the "low" part of the DPV pulse
-AD5940Err EChem_DPV::generateADCSequenceLow(void) {
+AD5940Err sensor::EChem_DPV::generateADCSequenceLow(void) {
   AD5940Err error = AD5940ERR_OK;
   const uint32_t* pSeqCmd;
   uint32_t SeqLen;
@@ -431,7 +430,7 @@ AD5940Err EChem_DPV::generateADCSequenceLow(void) {
  * @return return error code
  *
  * */
-AD5940Err EChem_DPV::generateDACSequence(void) {
+AD5940Err sensor::EChem_DPV::generateDACSequence(void) {
 #define SEQLEN_ONESTEP 4L /* How many sequence commands are needed to update LPDAC. */
 #define CURRBLK_BLK0 0 /* Current block is BLOCK0 */
 #define CURRBLK_BLK1 1 /* Current block is BLOCK1 */
@@ -563,7 +562,7 @@ AD5940Err EChem_DPV::generateDACSequence(void) {
 }
 
 // Function to handle interrupts
-void EChem_DPV::ISR(void) {
+void sensor::EChem_DPV::ISR(void) {
   if (!isRunning() && rampState != DPVRampState::Stop) return;
 
   std::vector<uint32_t> buf;
@@ -608,7 +607,7 @@ void EChem_DPV::ISR(void) {
 }
 
 // Calculate DAC code step by step
-AD5940Err EChem_DPV::updateRampDACCode(uint32_t* pDACData) {
+AD5940Err sensor::EChem_DPV::updateRampDACCode(uint32_t* pDACData) {
   if (pDACData == nullptr) return AD5940ERR_PARA;
 
   // 1) Handle state transitions (only when thresholds are crossed)
@@ -649,7 +648,7 @@ AD5940Err EChem_DPV::updateRampDACCode(uint32_t* pDACData) {
   return AD5940ERR_OK;
 }
 
-bool EChem_DPV::processAndStoreData(uint32_t* pData, uint32_t numSamples) {
+bool sensor::EChem_DPV::processAndStoreData(uint32_t* pData, uint32_t numSamples) {
   for (uint32_t i = 0; i < numSamples; i++) {
     pData[i] &= 0xffff;
     push(calculateCurrent(pData[i], config.ADCPgaGain, config.ADCRefVolt, config.RtiaCalValue.Magnitude));
@@ -658,6 +657,6 @@ bool EChem_DPV::processAndStoreData(uint32_t* pData, uint32_t numSamples) {
   return true;
 }
 
-void EChem_DPV::printResult(void) {
+void sensor::EChem_DPV::printResult(void) {
   forEach([](const float& i_uA) { Serial.printf("    I = %.5f uA\n", i_uA); });
 }

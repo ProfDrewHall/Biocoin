@@ -6,7 +6,6 @@
 #include "sensors/Sensor.h"
 #include "util/debug_log.h"
 
-using namespace sensor;
 
 // Structure for how parameters are passed down from the host
 struct IMP_PARAMETERS {
@@ -19,7 +18,7 @@ struct IMP_PARAMETERS {
   float frequency; //[Hz]
 } __attribute__((packed));
 
-EChem_Imp::EChem_Imp() {
+sensor::EChem_Imp::EChem_Imp() {
   // Initialize structures to known values
   memset(&config, 0, sizeof(ImpConfig_Type));
   config.bParaChanged = bFALSE; // Flag used to indicate parameters have been set
@@ -66,7 +65,7 @@ EChem_Imp::EChem_Imp() {
   config.MeasSeqCycleCount = 0;
 }
 
-bool EChem_Imp::loadParameters(uint8_t* data, uint16_t len) {
+bool sensor::EChem_Imp::loadParameters(uint8_t* data, uint16_t len) {
   dbgInfo("Updating IMP parameters...");
   if (len != sizeof(IMP_PARAMETERS)) { // Check to ensure the size is correct
     dbgError(String("Incorrect payload size! Expected ") + String(sizeof(IMP_PARAMETERS)) + String(" but received ") +
@@ -112,7 +111,7 @@ bool EChem_Imp::loadParameters(uint8_t* data, uint16_t len) {
   return true;
 }
 
-bool EChem_Imp::start() {
+bool sensor::EChem_Imp::start() {
   if (config.bParaChanged != bTRUE) return false; // Parameters have not been set
 
   clear();                       // Clear the data queue
@@ -142,7 +141,7 @@ bool EChem_Imp::start() {
   return true;
 }
 
-bool EChem_Imp::stop() {
+bool sensor::EChem_Imp::stop() {
   if (AD5940_WakeUp(10) > 10) /* Wakeup AFE by read register, read 10 times at most */
     return false;             /* Wakeup Failed */
   /* Start Wupt right now */
@@ -158,7 +157,7 @@ bool EChem_Imp::stop() {
 }
 
 /* Initialize AD5940 basic blocks like clock */
-int32_t EChem_Imp::initAD5940(void) {
+int32_t sensor::EChem_Imp::initAD5940(void) {
   AD5940_HWReset();                                // Hardware reset
   AD5940_Initialize();                             // Platform configuration
   AD5940_ConfigureClock();                         // Step 1 - Configure clock
@@ -175,7 +174,7 @@ int32_t EChem_Imp::initAD5940(void) {
 /**
  * @brief Initialize the amperometric test. Call this function every time before starting amperometric test.
  */
-AD5940Err EChem_Imp::setupMeasurement(void) {
+AD5940Err sensor::EChem_Imp::setupMeasurement(void) {
   AD5940Err error = AD5940ERR_OK;
   SEQCfg_Type seq_cfg;
   FIFOCfg_Type fifo_cfg;
@@ -242,7 +241,7 @@ AD5940Err EChem_Imp::setupMeasurement(void) {
   return AD5940ERR_OK;
 }
 
-void EChem_Imp::configureWaveformParameters(void) {
+void sensor::EChem_Imp::configureWaveformParameters(void) {
   // AFE mode settings
   if (config.SinFreq >= 20000.0)
     config.PwrMod = AFEPWR_HP;
@@ -254,7 +253,7 @@ void EChem_Imp::configureWaveformParameters(void) {
 }
 
 /* Generate init sequence for CA. This runs only one time. */
-AD5940Err EChem_Imp::generateInitSequence(void) {
+AD5940Err sensor::EChem_Imp::generateInitSequence(void) {
   AD5940Err error = AD5940ERR_OK;
   uint32_t const* pSeqCmd;
   uint32_t SeqLen;
@@ -374,7 +373,7 @@ AD5940Err EChem_Imp::generateInitSequence(void) {
 }
 
 /* Generate measurement sequence for CA. This runs indefinitely until test is ended. */
-AD5940Err EChem_Imp::generateMeasSequence(void) {
+AD5940Err sensor::EChem_Imp::generateMeasSequence(void) {
   AD5940Err error = AD5940ERR_OK;
   uint32_t const* pSeqCmd;
   uint32_t SeqLen;
@@ -451,7 +450,7 @@ AD5940Err EChem_Imp::generateMeasSequence(void) {
   return AD5940ERR_OK;
 }
 
-AD5940Err EChem_Imp::AD5940_CalibrateHSRTIA(void) {
+AD5940Err sensor::EChem_Imp::AD5940_CalibrateHSRTIA(void) {
   HSRTIACal_Type hsrtia_cal;
 
   hsrtia_cal.AdcClkFreq = config.AdcClkFreq;
@@ -491,7 +490,7 @@ AD5940Err EChem_Imp::AD5940_CalibrateHSRTIA(void) {
 }
 
 // Function to handle interrupts
-void EChem_Imp::ISR(void) {
+void sensor::EChem_Imp::ISR(void) {
   if (!isRunning()) return; // Check that the technique is running
 
   std::vector<uint32_t> buf;
@@ -526,7 +525,7 @@ void EChem_Imp::ISR(void) {
 }
 
 /* Modify registers when AFE wakeup */
-AD5940Err EChem_Imp::updateRegisters(void) {
+AD5940Err sensor::EChem_Imp::updateRegisters(void) {
   if (config.NumOfData > 0) {
     config.FifoDataCount += getNumBytesAvailable() / 4;
     if (config.FifoDataCount >= config.NumOfData) {
@@ -543,7 +542,7 @@ AD5940Err EChem_Imp::updateRegisters(void) {
   return AD5940ERR_OK;
 }
 
-bool EChem_Imp::processAndStoreData(uint32_t* pData, uint32_t numSamples) {
+bool sensor::EChem_Imp::processAndStoreData(uint32_t* pData, uint32_t numSamples) {
   if (!pData || (numSamples % 4u) != 0u) return false;
 
   // Convert DFT result to int32_t type
@@ -578,7 +577,7 @@ bool EChem_Imp::processAndStoreData(uint32_t* pData, uint32_t numSamples) {
   return true;
 }
 
-void EChem_Imp::printResult(void) {
+void sensor::EChem_Imp::printResult(void) {
   const float freq = (config.SweepCfg.SweepEn == bTRUE) ? config.FreqofData : config.SinFreq;
 
   forEach([freq](const fImpPol_Type& imp) {

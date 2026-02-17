@@ -7,8 +7,6 @@
 
 #include <Arduino.h>
 
-using namespace battery;
-
 constexpr float kADCRefVoltage = 1.8f;                                                 // Reference voltage in volts
 constexpr int kADCResolution = 16383;                                                  // 14-bit ADC resolution
 constexpr float kADCScaleFactor = kADCRefVoltage / static_cast<float>(kADCResolution); // Code to Volts

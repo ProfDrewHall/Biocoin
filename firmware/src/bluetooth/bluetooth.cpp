@@ -11,9 +11,8 @@
 
 #include <queue>
 
-using namespace bluetooth;
-
-constexpr size_t kSlaveLatency = (kConnectionIntervalEff / kConnectionInterval -1); // Number of connection intervals to skip if no data needs to be transmitted
+constexpr size_t kSlaveLatency =
+    (bluetooth::kConnectionIntervalEff / bluetooth::kConnectionInterval - 1); // Number of connection intervals to skip
 constexpr uint16_t kDefaultMTU = 23;
 
 namespace bluetooth {
@@ -28,11 +27,11 @@ namespace bluetooth {
 
 
 // Check the configuration
-static_assert(kAdvSlowRate > 0.625f, "BLE Slow advertising rate must be >0.625");
-static_assert(kAdvFastRate > 0.625f, "BLE Fast advertising rate must be >0.625");
+static_assert(bluetooth::kAdvSlowRate > 0.625f, "BLE Slow advertising rate must be >0.625");
+static_assert(bluetooth::kAdvFastRate > 0.625f, "BLE Fast advertising rate must be >0.625");
 static_assert(kSlaveLatency > 0, "Slave latency must be greater than 0");
-static_assert((sizeof(kManufacturer) - 1) <= 20, "Manufacturer string exceeds BLE DIS limit");
-static_assert((sizeof(kModel) - 1) <= 20, "Model string exceeds BLE DIS limit");
+static_assert((sizeof(bluetooth::kManufacturer) - 1) <= 20, "Manufacturer string exceeds BLE DIS limit");
+static_assert((sizeof(bluetooth::kModel) - 1) <= 20, "Model string exceeds BLE DIS limit");
 
 
 void bluetooth::init() {
@@ -82,6 +81,7 @@ void bluetooth::initStandardServices() {
   // Device Information Service
   bledis.setManufacturer(kManufacturer);
   bledis.setModel(kModel);
+  bledis.setFirmwareRev(kFirmwareRev);
   bledis.begin();
 
   // Battery Service

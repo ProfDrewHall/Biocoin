@@ -7,7 +7,6 @@
 #include "sensors/SensorManager.h"
 #include "util/debug_log.h"
 
-using namespace sensor;
 
 namespace sensor {} // namespace sensor
 
@@ -18,7 +17,7 @@ struct IONTOPHORESIS_PARAMETERS {
   float maxCurrent;       // [uA]
 } __attribute__((packed));
 
-Iontophoresis::Iontophoresis() {
+sensor::Iontophoresis::Iontophoresis() {
   // Initialize structures to known values
   memset(&config, 0, sizeof(IontophoresisConfig_Type));
   config.bParaChanged = bFALSE; // Flag used to indicate parameters have been set
@@ -28,7 +27,7 @@ Iontophoresis::Iontophoresis() {
   stimulationTaskHandle = nullptr;
 }
 
-bool Iontophoresis::loadParameters(uint8_t* data, uint16_t len) {
+bool sensor::Iontophoresis::loadParameters(uint8_t* data, uint16_t len) {
   dbgInfo("Updating Iontophoresis parameters...");
   if (len != sizeof(IONTOPHORESIS_PARAMETERS)) { // Check to ensure the size is correct
     dbgError(String("Incorrect payload size! Expected ") + String(sizeof(IONTOPHORESIS_PARAMETERS)) +
@@ -53,7 +52,7 @@ bool Iontophoresis::loadParameters(uint8_t* data, uint16_t len) {
   return true;
 }
 
-bool Iontophoresis::start() {
+bool sensor::Iontophoresis::start() {
   if (config.bParaChanged != bTRUE) return false; // Parameters have not been set
 
   power::powerOnIontophoresis();
@@ -72,7 +71,7 @@ bool Iontophoresis::start() {
   return true;
 }
 
-bool Iontophoresis::stop() {
+bool sensor::Iontophoresis::stop() {
   stopStimulationMonitoringTask();
   AD5940_ReadReg(REG_AFE_ADCDAT); /* Any SPI Operation can wakeup AFE */
   /* There is chance this operation will fail because sequencer could put AFE back
@@ -86,7 +85,7 @@ bool Iontophoresis::stop() {
 }
 
 /* Initialize AD5940 basic blocks like clock */
-int32_t Iontophoresis::initAD5940(void) {
+int32_t sensor::Iontophoresis::initAD5940(void) {
   AD5940_HWReset();                                // Hardware reset
   AD5940_Initialize();                             // Platform configuration
   AD5940_ConfigureClock();                         // Step 1 - Configure clock
@@ -100,7 +99,7 @@ int32_t Iontophoresis::initAD5940(void) {
   return 0;
 }
 
-AD5940Err Iontophoresis::configureDAC(void) {
+AD5940Err sensor::Iontophoresis::configureDAC(void) {
   float voltage =
       config.stimCurrent * config.Rsense * config.Av_CSA / 1000; // Convert desired current into a DAC voltage in [mV]
 
@@ -122,7 +121,7 @@ AD5940Err Iontophoresis::configureDAC(void) {
 }
 
 // Current monitoring
-void Iontophoresis::startStimulationMonitoringTask() {
+void sensor::Iontophoresis::startStimulationMonitoringTask() {
   if (stimulationTaskHandle == nullptr) {
     xTaskCreate(stimulationTask,               // Task function
                 "Stimulation Current Monitor", // Task name
@@ -134,14 +133,14 @@ void Iontophoresis::startStimulationMonitoringTask() {
   }
 }
 
-void Iontophoresis::stopStimulationMonitoringTask() {
+void sensor::Iontophoresis::stopStimulationMonitoringTask() {
   if (stimulationTaskHandle != nullptr) {
     vTaskDelete(stimulationTaskHandle);
     stimulationTaskHandle = nullptr;
   }
 }
 
-void Iontophoresis::stimulationTask(void* pvParameters) {
+void sensor::Iontophoresis::stimulationTask(void* pvParameters) {
   auto* self = static_cast<Iontophoresis*>(pvParameters);
   if (!self) {
     dbgError("stimulationTask received nullptr parameters!");

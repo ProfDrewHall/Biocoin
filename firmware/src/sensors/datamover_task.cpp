@@ -8,8 +8,6 @@
 
 #include <Arduino.h>
 
-using namespace sensor;
-
 namespace sensor {
   TaskHandle_t dataTaskHandle = nullptr;  
   void dataMoverTask(void* pvParameters);

@@ -17,8 +17,6 @@ namespace bluetooth {
 
 } // namespace bluetooth
 
-using namespace bluetooth;
-
 void bluetooth::initGatt() {
   dbgInfo("Initializing custom BLE services...");
 

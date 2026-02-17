@@ -4,12 +4,11 @@
 #include "util/debug_log.h"
 
 #include <Adafruit_LittleFS.h>
+#include <bluefruit.h>
 #include <InternalFileSystem.h>
 
-using namespace storage;
-
 namespace storage {
-  constexpr uint8_t kMaxDeviceNameLen = 248 + 1; // Device name must be less than BLE_GAP_DEVNAME_MAX_LEN (248)
+  constexpr size_t kMaxDeviceNameLen = BLE_GAP_DEVNAME_MAX_LEN + 1; // Include null terminator.
   constexpr const char* kDeviceFilename = "/devicename.txt";
 } // namespace storage
 
@@ -21,12 +20,17 @@ void storage::init() {
 }
 
 void storage::writeDeviceName(const String& name) {
-  dbgInfo("Writing new device name: " + name);
+  String sanitizedName = name;
+  if (sanitizedName.length() > BLE_GAP_DEVNAME_MAX_LEN - 1) {
+    sanitizedName = sanitizedName.substring(0, BLE_GAP_DEVNAME_MAX_LEN - 1);
+  }
+
+  dbgInfo("Writing new device name: " + sanitizedName);
 
   InternalFS.remove(kDeviceFilename); // Remove the old file
 
   if (file.open(kDeviceFilename, Adafruit_LittleFS_Namespace::FILE_O_WRITE)) {
-    file.write(name.c_str(), name.length() + 1); // write + null terminator
+    file.write(sanitizedName.c_str(), sanitizedName.length() + 1); // write + null terminator
     file.close();
     file.flush(); // Make sure it gets written before we restart
 

@@ -5,8 +5,6 @@
 
 #include <Arduino.h>
 
-using namespace power;
-
 namespace power {
     static void heartbeatTask(void* pvParameters);
 }

@@ -7,8 +7,6 @@
 #include <Arduino.h>
 #include <queue>
 
-using namespace bluetooth;
-
 namespace bluetooth {
   std::queue<uint8_t> TX_queue;
   static TaskHandle_t TXTaskHandle = nullptr;

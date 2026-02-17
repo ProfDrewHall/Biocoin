@@ -19,6 +19,10 @@
 #ifndef _VARIANT_FEATHER52840_
 #define _VARIANT_FEATHER52840_
 
+/** Custom tag used by HWConfig/build_checks.h to verify local variant selection. */
+#define BIOCOIN_LOCAL_VARIANT 1
+#define BIOCOIN_LOCAL_VARIANT_TAG "biocoin-local-variant"
+
 /** Master clock frequency */
 #define VARIANT_MCK       (64000000ul)
 

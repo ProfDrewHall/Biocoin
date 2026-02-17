@@ -6,7 +6,6 @@
 #include "sensors/Sensor.h"
 #include "util/debug_log.h"
 
-using namespace sensor;
 
 // Structure for how parameters are passed down from the host
 struct TEMP_PARAMETERS {
@@ -15,7 +14,7 @@ struct TEMP_PARAMETERS {
     uint8_t channel;           //Determines which pin the ADC input MUX needs to sample
 } __attribute__((packed));
 
-EChem_Temp::EChem_Temp() {
+sensor::EChem_Temp::EChem_Temp() {
   // Initialize structures to known values
   memset(&config, 0, sizeof(TempConfig_Type));
   config.bParaChanged = bFALSE; // Flag used to indicate parameters have been set
@@ -34,7 +33,7 @@ EChem_Temp::EChem_Temp() {
   config.ADCRefVolt = 1.82;     /* Measure voltage on ADCRefVolt pin and enter here*/
 }
 
-bool EChem_Temp::loadParameters(uint8_t* data, uint16_t len) {
+bool sensor::EChem_Temp::loadParameters(uint8_t* data, uint16_t len) {
   dbgInfo("Updating Temp parameters...");
   if (len != sizeof(TEMP_PARAMETERS)) { // Check to ensure the size is correct
     dbgError(String("Incorrect payload size! Expected ") + String(sizeof(TEMP_PARAMETERS)) + String(" but received ") +
@@ -71,7 +70,7 @@ bool EChem_Temp::loadParameters(uint8_t* data, uint16_t len) {
   return true;
 }
 
-bool EChem_Temp::start() {
+bool sensor::EChem_Temp::start() {
   if (config.bParaChanged != bTRUE) return false; // Parameters have not been set
 
   clear();                    // Clear the data queue
@@ -99,7 +98,7 @@ bool EChem_Temp::start() {
   return true;
 }
 
-bool EChem_Temp::stop() {
+bool sensor::EChem_Temp::stop() {
   AD5940_ReadReg(REG_AFE_ADCDAT); /* Any SPI Operation can wakeup AFE */
   /* There is chance this operation will fail because sequencer could put AFE back
       to hibernate mode just after waking up. Use STOPSYNC is better. */
@@ -112,7 +111,7 @@ setStopped();
 }
 
 /* Initialize AD5940 basic blocks like clock */
-int32_t EChem_Temp::initAD5940(void) {
+int32_t sensor::EChem_Temp::initAD5940(void) {
   AD5940_HWReset();                                // Hardware reset
   AD5940_Initialize();                             // Platform configuration
   AD5940_ConfigureClock();                         // Step 1 - Configure clock
@@ -129,7 +128,7 @@ int32_t EChem_Temp::initAD5940(void) {
 /**
  * @brief Initialize the amperometric test. Call this function every time before starting amperometric test.
  */
-AD5940Err EChem_Temp::setupMeasurement(void) {
+AD5940Err sensor::EChem_Temp::setupMeasurement(void) {
   AD5940Err error = AD5940ERR_OK;
   SEQCfg_Type seq_cfg;
   FIFOCfg_Type fifo_cfg;
@@ -193,7 +192,7 @@ AD5940Err EChem_Temp::setupMeasurement(void) {
 }
 
 /* Generate init sequence for CA. This runs only one time. */
-AD5940Err EChem_Temp::generateInitSequence(void) {
+AD5940Err sensor::EChem_Temp::generateInitSequence(void) {
   AD5940Err error = AD5940ERR_OK;
   uint32_t const* pSeqCmd;
   uint32_t SeqLen;
@@ -233,7 +232,7 @@ AD5940Err EChem_Temp::generateInitSequence(void) {
 }
 
 /* Generate measurement sequence for CA. This runs indefinitely until test is ended. */
-AD5940Err EChem_Temp::generateMeasSequence(void) {
+AD5940Err sensor::EChem_Temp::generateMeasSequence(void) {
   AD5940Err error = AD5940ERR_OK;
   uint32_t const* pSeqCmd;
   uint32_t SeqLen;
@@ -277,7 +276,7 @@ AD5940Err EChem_Temp::generateMeasSequence(void) {
 }
 
 // Function to handle interrupts
-void EChem_Temp::ISR(void) {
+void sensor::EChem_Temp::ISR(void) {
   if (!isRunning()) return; // Check that the technique is running
 
   std::vector<uint32_t> buf;
@@ -300,13 +299,13 @@ void EChem_Temp::ISR(void) {
   if (!buf.empty()) processAndStoreData(buf.data(), static_cast<uint32_t>(buf.size()));
 }
 
-bool EChem_Temp::processAndStoreData(uint32_t* pData, uint32_t numSamples) {
+bool sensor::EChem_Temp::processAndStoreData(uint32_t* pData, uint32_t numSamples) {
   for (uint32_t i = 0; i < numSamples; i++)
     push(1000.0f * AD5940_ADCCode2Volt(pData[i] & 0xffff, config.ADCPgaGain, config.ADCRefVolt) + 1110.0f);
 
   return true;
 }
 
-void EChem_Temp::printResult(void) {
+void sensor::EChem_Temp::printResult(void) {
   forEach([](const float& v_mV) { Serial.printf("Voltage = %.5f (mV)\n", v_mV); });
 }

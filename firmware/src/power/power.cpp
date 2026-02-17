@@ -8,8 +8,6 @@
 #include <nrf_sdm.h>
 #include <nrf_soc.h>
 
-using namespace power;
-
 constexpr uint32_t kStartupDelay = 50; // Time in ms to let peripherials come online
 
 void power::init() {

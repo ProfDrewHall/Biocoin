@@ -3,7 +3,9 @@
 Firmware for the BioCoin wearable electrochemical platform.
 This code runs on an nRF52840-based board and controls an Analog Devices AD5940 for multi-modal electrochemical sensing. It exposes a BLE interface for configuring techniques, starting/stopping tests, and streaming results to a host (Python app, mobile, etc.).
 
-> Techniques supported: **CA**, **CV**, **DPV**, **Impedance (EIS)**, **OCP**, **TEMP**, and **Iontophoresis**.
+Current release: **v1.1.0**
+
+> Techniques supported: **CA**, **CV**, **DPV**, **SWV**, **Impedance (EIS)**, **OCP**, **TEMP**, and **Iontophoresis**.
 
 ---
 
@@ -48,32 +50,49 @@ nrfutil dfu usb-serial -pkg firmware_dfu.zip -p <COM_PORT> -b 115200
 
 ## 📁 Repository Structure (high level)
 
-```
-sensors/
-  EChem_CA.{h,cpp}      # Chronoamperometry
-  EChem_CV.{h,cpp}      # Cyclic Voltammetry
-  EChem_DPV.{h,cpp}     # Differential Pulse Voltammetry
-  EChem_Imp.{h,cpp}     # Impedance / EIS
-  EChem_OCP.{h,cpp}     # Open Circuit Potential
-  EChem_Temp.{h,cpp}    # Temperature monitor (ADC voltage)
-  iontophoresis.h       # Iontophoresis control
-  Sensor.h              # Base class + queue
-
-drivers/
-  ad5940_hal.*          # AD5940 abstraction and helpers
-
-bluetooth/
-  gatt.*                # GATT characteristics, status, data TX
-  transmitdata_task.*   # BLE streamer
-
-util/
-  debug_log.*           # Logging helpers
-
-power/
-  power.*               # AFE and peripheral power control
-
-HWConfig/
-  constants.h           # System constants (clocks, etc.)
+``` 
+src/
+  main.cpp
+  HWConfig/
+    constants.h         # Aggregates build checks + config + pins
+    build_checks.h      # Compile-time environment validation
+    config.h            # Firmware/version/runtime constants
+    pins.h              # Board pin assignments
+  variants/biocoin/
+    variant.h
+    variant.cpp
+  sensors/
+    EChem_CA.{h,cpp}
+    EChem_CV.{h,cpp}
+    EChem_DPV.{h,cpp}
+    EChem_SWV.{h,cpp}
+    EChem_Imp.{h,cpp}
+    EChem_OCP.{h,cpp}
+    EChem_Temp.{h,cpp}
+    Iontophoresis.{h,cpp}
+    Sensor.{h,cpp}
+    SensorManager.{h,cpp}
+    datamover_task.{h,cpp}
+  bluetooth/
+    bluetooth.{h,cpp}
+    gatt.{h,cpp}
+    transmitdata_task.h
+    tansmitdata_task.cpp
+  battery/
+    battery.{h,cpp}
+    battery_task.{h,cpp}
+  power/
+    power.{h,cpp}
+    led_task.{h,cpp}
+  storage/
+    storage.{h,cpp}
+  drivers/
+    ad5940_hal.{h,cpp}
+    AD5940_Helper.{h,cpp}
+  util/
+    debug_log.h
+    task_sync.h
+    util.{h,cpp}
 ```
 
 ---
@@ -92,7 +111,9 @@ All techniques inherit from `sensor::Sensor` and (for streaming) use `SensorQueu
 
 ## SDK
 
-There are some modifications needed to the underlying Arduino framework since this code boostraps the Adafruit feather board based on the nRF52840. Download and install the Adafruit design, then make the modifications in the SDK_Modifications folder to the variants file. These add the additional pins not exposed in the Adafruit design and change the interrupt type (for lower power operation).
+This project now uses a repo-local PlatformIO variant in `src/variants/biocoin` (configured in `platformio.ini`) so board pin mapping/build settings are version-controlled with firmware source.
+No manual edits to PlatformIO package files are required.
+For lowest-power operation, SDK-level `WInterrupts` changes are still required (see `SDK Modifications/WInterrupts-port.c` and `SDK Modifications/WInterrupts-port.h`).
 
 ---
 
@@ -105,7 +126,7 @@ There are some modifications needed to the underlying Arduino framework since th
 - A **Status** characteristic reports `TestState` (`NOT_RUNNING`, `RUNNING`, `ERROR`, etc.)
 - A **Data** characteristic streams measurement results as raw bytes (floats)
 
-> UUIDs/handles are defined in the BLE layer (see `bluetooth/gatt.*`). Host apps should send the correct packed struct for the selected technique.
+> UUIDs/handles are defined in the BLE layer (see `src/bluetooth/gatt.*`). Host apps should send the correct packed struct for the selected technique.
 
 ---
 
@@ -148,6 +169,20 @@ struct DPV_PARAMETERS {
   float  Epulse;              // [mV] pulse height
   float  Estep;               // [mV] ramp step
   float  pulseWidth;          // [ms]
+  float  pulsePeriod;         // [ms]
+  uint8_t channel;            // 0..3
+} __attribute__((packed));
+```
+
+### Square Wave Voltammetry (SWV)
+```c++
+struct SWV_PARAMETERS {
+  float  processingInterval;  // [s]
+  float  maxCurrent;          // [uA] range hint
+  float  Estart;              // [mV]
+  float  Estop;               // [mV]
+  float  Eamplitude;          // [mV] square-wave amplitude
+  float  Estep;               // [mV] staircase step
   float  pulsePeriod;         // [ms]
   uint8_t channel;            // 0..3
 } __attribute__((packed));
@@ -240,7 +275,6 @@ Long term:
 - Add other techniques: EIS, NPV, LSV, etc.
 - Add CRC to parameters for BLE comm?
 - Add a serial # to the BLE characteristics
-- Figure out how to do "include shadowing" to avoid having to modify the Adafruit library files directly
 
 ---
 

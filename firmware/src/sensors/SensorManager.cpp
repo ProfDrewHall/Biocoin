@@ -18,8 +18,6 @@
 #include <utility>
 #include <memory>
 
-using namespace sensor;
-
 namespace sensor {
   std::unique_ptr<Sensor> pActiveSensor = nullptr;
   SensorType activeSensorID = SensorType::None;
@@ -34,7 +32,7 @@ void sensor::init() {
   updateStatus(TestState::NOT_RUNNING);
 }
 
-std::unique_ptr<Sensor> sensor::createSensor(sensor::SensorType type) {
+std::unique_ptr<sensor::Sensor> sensor::createSensor(sensor::SensorType type) {
   dbgInfo("Creating sensor of type: " + String(static_cast<uint8_t>(type)));
   switch (type) {
   case SensorType::CA:
