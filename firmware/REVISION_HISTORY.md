@@ -14,6 +14,7 @@
   - Updated sensor/data mover control flow for cleaner start/stop behavior.
 - Source-level cleanup and consistency:
   - Removed redundant includes and `using namespace` remnants.
+  - Normalized sensor/driver filenames to consistent lowercase snake_case and updated includes accordingly.
   - Applied line-ending normalization and formatting consistency updates across source files.
   - Fixed compile issues/warnings introduced during cleanup (missing include and signed/unsigned compare in impedance path).
 - CI and automation additions:

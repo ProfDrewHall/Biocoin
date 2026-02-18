@@ -1,3 +1,8 @@
+/**
+ * @file ad5940.h
+ * @brief AD5940 vendor driver declarations and register definitions.
+ */
+
 /**  
  * @file       ad5940.h
  * @brief      AD5940 library. This file contains all AD5940 library functions. 

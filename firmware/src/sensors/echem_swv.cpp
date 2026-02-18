@@ -1,9 +1,14 @@
-#include "sensors/EChem_SWV.h"
+/**
+ * @file echem_swv.cpp
+ * @brief Square-wave voltammetry (SWV) technique implementation.
+ */
+
+#include "sensors/echem_swv.h"
 
 #include "HWConfig/constants.h"
 #include "drivers/ad5940_hal.h"
 #include "power/power.h"
-#include "sensors/SensorManager.h"
+#include "sensors/sensor_manager.h"
 #include "util/debug_log.h"
 
 
@@ -177,9 +182,7 @@ int32_t sensor::EChem_SWV::initAD5940(void) {
   return 0;
 }
 
-/**
- * @brief Initialize the test. Call this function every time before starting  test.
- */
+
 AD5940Err sensor::EChem_SWV::setupMeasurement(void) {
   AD5940Err error = AD5940ERR_OK;
   SEQCfg_Type seq_cfg;
@@ -358,10 +361,7 @@ AD5940Err sensor::EChem_SWV::generateInitSequence(void) {
   return AD5940ERR_OK;
 }
 
-/**
- * @brief Generate ADC control sequence and write the commands to SRAM.
- * @return return error code.
- */
+
 AD5940Err sensor::EChem_SWV::generateADCSequence(void) {
   AD5940Err error = AD5940ERR_OK;
   const uint32_t* pSeqCmd;
@@ -402,14 +402,7 @@ AD5940Err sensor::EChem_SWV::generateADCSequence(void) {
   return AD5940ERR_OK;
 }
 
-/**
- * @brief Update DAC sequence in SRAM in real time.
- * @details This function generates sequences to update DAC code step by step. It's also called in interrupt
- *          function when half commands in SRAM has been completed. We don't use sequence generator to save memory.
- *          Check more details from documentation of this example. @ref Ramp_Test_Example
- * @return return error code
- *
- * */
+
 AD5940Err sensor::EChem_SWV::generateDACSequence(void) {
 #define SEQLEN_ONESTEP 4L /* How many sequence commands are needed to update LPDAC. */
 #define CURRBLK_BLK0 0 /* Current block is BLOCK0 */

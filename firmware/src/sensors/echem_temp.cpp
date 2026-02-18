@@ -1,4 +1,9 @@
-#include "sensors/EChem_OCP.h"
+/**
+ * @file echem_temp.cpp
+ * @brief Temperature measurement technique implementation.
+ */
+
+#include "sensors/echem_temp.h"
 
 #include "HWConfig/constants.h"
 #include "drivers/ad5940_hal.h"
@@ -7,17 +12,15 @@
 
 
 // Structure for how parameters are passed down from the host
-struct OCP_PARAMETERS {
-  float samplingInterval; //[s] This controls how often the ADC samples (time between samples) by controlling the sleep
-                          // time between sequences
-  float processingInterval; //[s] This controls how often the interrupt triggers and therefore, how often the MCU
-                            // reads/processes the data.
-  uint8_t channel;          // Determines which pin the ADC input MUX needs to sample
+struct TEMP_PARAMETERS {
+    float samplingInterval;      //[s] This controls how often the ADC samples (time between samples) by controlling the sleep time between sequences
+    float processingInterval;    //[s] This controls how often the interrupt triggers and therefore, how often the MCU reads/processes the data.
+    uint8_t channel;           //Determines which pin the ADC input MUX needs to sample
 } __attribute__((packed));
 
-sensor::EChem_OCP::EChem_OCP() {
+sensor::EChem_Temp::EChem_Temp() {
   // Initialize structures to known values
-  memset(&config, 0, sizeof(OCPConfig_Type));
+  memset(&config, 0, sizeof(TempConfig_Type));
   config.bParaChanged = bFALSE; // Flag used to indicate parameters have been set
   config.SeqStartAddr = 0;
 
@@ -31,22 +34,18 @@ sensor::EChem_OCP::EChem_OCP() {
   config.ADCSinc2Osr = ADCSINC2OSR_44; // adjust these as needed if really fast or really slow sampling is required.
                                        // Power vs. SNR tradeoff.
   config.DataFifoSrc = DATATYPE_SINC2; /* Data type must be SINC2 for chrono-amperometric measurement*/
-
-  // LPDAC Configure, set to midscale values for now (1300mV)
-  config.Vzero = ((AD5940_MAX_DAC_OUTPUT - AD5940_MIN_DAC_OUTPUT) / 2 + AD5940_MIN_DAC_OUTPUT); // midscale
-  config.Vbias = 1100.0f;   // Common-mode voltage applied to the RE
-  config.ADCRefVolt = 1.82; /* Measure voltage on ADCRefVolt pin and enter here*/
+  config.ADCRefVolt = 1.82;     /* Measure voltage on ADCRefVolt pin and enter here*/
 }
 
-bool sensor::EChem_OCP::loadParameters(uint8_t* data, uint16_t len) {
-  dbgInfo("Updating OCP parameters...");
-  if (len != sizeof(OCP_PARAMETERS)) { // Check to ensure the size is correct
-    dbgError(String("Incorrect payload size! Expected ") + String(sizeof(OCP_PARAMETERS)) + String(" but received ") +
-             String(len));
+bool sensor::EChem_Temp::loadParameters(uint8_t* data, uint16_t len) {
+  dbgInfo("Updating Temp parameters...");
+  if (len != sizeof(TEMP_PARAMETERS)) { // Check to ensure the size is correct
+    dbgError(String("Incorrect payload size! Expected ") + String(sizeof(TEMP_PARAMETERS)) + String(" but received ") +
+              String(len));
     return false;
   }
 
-  OCP_PARAMETERS params;
+  TEMP_PARAMETERS params;
   memcpy(&params, data, sizeof(params));
 
   dbgInfo(String("\tSampling Interval [s]: ") + String(params.samplingInterval));
@@ -59,9 +58,8 @@ bool sensor::EChem_OCP::loadParameters(uint8_t* data, uint16_t len) {
     return false;
   }
 
-  if (params.channel != ADCMUXP_AIN6 && params.channel != ADCMUXP_VAFE3 && params.channel != ADCMUXP_AIN0 &&
-      params.channel != ADCMUXP_VAFE2) {
-    dbgError("Invalid OCP channel.");
+  if (params.channel != ADCMUXP_VAFE4 && params.channel != ADCMUXP_VAFE1 && params.channel != ADCMUXP_AIN2) {
+    dbgError("Invalid temp channel.");
     return false;
   }
 
@@ -76,14 +74,14 @@ bool sensor::EChem_OCP::loadParameters(uint8_t* data, uint16_t len) {
   return true;
 }
 
-bool sensor::EChem_OCP::start() {
+bool sensor::EChem_Temp::start() {
   if (config.bParaChanged != bTRUE) return false; // Parameters have not been set
 
-  clear();              // Clear the data queue
-  power::powerOnAFE(0); // Turn on the power to the AD5940, select the correct mux input
-  Start_AD5940_SPI();   // Initialize SPI
-  initAD5940();         // Initialize the AD5940
-  setupMeasurement();   // Initialize measurement sequence
+  clear();                    // Clear the data queue
+  power::powerOnTempSensor(); // Turn on the power to the AD5940, select the correct mux input
+  Start_AD5940_SPI();         // Initialize SPI
+  initAD5940();               // Initialize the AD5940
+  setupMeasurement();         // Initialize measurement sequence
 
   if (AD5940_WakeUp(10) > 10) /* Wakeup AFE by read register, read 10 times at most */
     return false;             /* Wakeup Failed */
@@ -104,7 +102,7 @@ bool sensor::EChem_OCP::start() {
   return true;
 }
 
-bool sensor::EChem_OCP::stop() {
+bool sensor::EChem_Temp::stop() {
   AD5940_ReadReg(REG_AFE_ADCDAT); /* Any SPI Operation can wakeup AFE */
   /* There is chance this operation will fail because sequencer could put AFE back
       to hibernate mode just after waking up. Use STOPSYNC is better. */
@@ -112,12 +110,12 @@ bool sensor::EChem_OCP::stop() {
   AD5940_ShutDownS();
   Stop_AD5940_SPI();             // Once the test has started, turn off SPI to reduce power
   power::powerOffPeripherials(); // Shut down the test
-  setStopped();
+setStopped();
   return true;
 }
 
 /* Initialize AD5940 basic blocks like clock */
-int32_t sensor::EChem_OCP::initAD5940(void) {
+int32_t sensor::EChem_Temp::initAD5940(void) {
   AD5940_HWReset();                                // Hardware reset
   AD5940_Initialize();                             // Platform configuration
   AD5940_ConfigureClock();                         // Step 1 - Configure clock
@@ -131,10 +129,8 @@ int32_t sensor::EChem_OCP::initAD5940(void) {
   return 0;
 }
 
-/**
- * @brief Initialize the amperometric test. Call this function every time before starting amperometric test.
- */
-AD5940Err sensor::EChem_OCP::setupMeasurement(void) {
+
+AD5940Err sensor::EChem_Temp::setupMeasurement(void) {
   AD5940Err error = AD5940ERR_OK;
   SEQCfg_Type seq_cfg;
   FIFOCfg_Type fifo_cfg;
@@ -151,7 +147,7 @@ AD5940Err sensor::EChem_OCP::setupMeasurement(void) {
   seq_cfg.SeqWrTimer = 0;
   AD5940_SEQCfg(&seq_cfg);
 
-  /* Now Reconfigure FIFO after Rtia cal for OCP measurements*/
+  /* Now Reconfigure FIFO after Rtia cal for CA measurements*/
   AD5940_FIFOCtrlS(FIFOSRC_SINC3, bFALSE); /* Disable FIFO firstly */
   fifo_cfg.FIFOEn = bTRUE;
   fifo_cfg.FIFOMode = FIFOMODE_FIFO;
@@ -198,7 +194,7 @@ AD5940Err sensor::EChem_OCP::setupMeasurement(void) {
 }
 
 /* Generate init sequence for CA. This runs only one time. */
-AD5940Err sensor::EChem_OCP::generateInitSequence(void) {
+AD5940Err sensor::EChem_Temp::generateInitSequence(void) {
   AD5940Err error = AD5940ERR_OK;
   uint32_t const* pSeqCmd;
   uint32_t SeqLen;
@@ -206,35 +202,10 @@ AD5940Err sensor::EChem_OCP::generateInitSequence(void) {
   AD5940_SEQGenCtrl(bTRUE);             // Start sequence generator here
   AD5940_AFECtrlS(AFECTRL_ALL, bFALSE); // Init all to disable state
 
-  AD5940_ConfigureAFEReferences(true, true, true, true);
-
-  LPLoopCfg_Type lp_loop = {};
-  lp_loop.LpDacCfg.LpdacSel = LPDAC0;
-  lp_loop.LpDacCfg.LpDacSrc = LPDACSRC_MMR;
-  lp_loop.LpDacCfg.LpDacSW = LPDACSW_VBIAS2LPPA | LPDACSW_VBIAS2PIN;
-  lp_loop.LpDacCfg.LpDacVzeroMux = LPDACVZERO_6BIT;
-  lp_loop.LpDacCfg.LpDacVbiasMux = LPDACVBIAS_12BIT;
-  lp_loop.LpDacCfg.LpDacRef = LPDACREF_2P5;
-  lp_loop.LpDacCfg.DataRst = bFALSE;
-  lp_loop.LpDacCfg.PowerEn = bTRUE;
-  lp_loop.LpDacCfg.DacData6Bit = (uint32_t)((config.Vzero - AD5940_MIN_DAC_OUTPUT) /
-                                            AD5940_6BIT_DAC_1LSB); // WE voltage. Don't care for this. Keep at midscale.
-  lp_loop.LpDacCfg.DacData12Bit =
-      (uint32_t)((config.Vbias - AD5940_MIN_DAC_OUTPUT) / AD5940_12BIT_DAC_1LSB); // RE voltage
-
-  if (lp_loop.LpDacCfg.DacData12Bit > 4095) lp_loop.LpDacCfg.DacData12Bit = 4095; // truncate if needed
-
-  lp_loop.LpAmpCfg.LpAmpSel = LPAMP0;
-  lp_loop.LpAmpCfg.LpAmpPwrMod =
-      LPAMPPWR_NORM; // OCP does not need to supply current and has no need for BW. Amplifier bias can be reduced.
-  lp_loop.LpAmpCfg.LpPaPwrEn = bTRUE;
-  lp_loop.LpAmpCfg.LpTiaPwrEn = bFALSE;
-  lp_loop.LpAmpCfg.LpTiaRf = LPTIARTIA_10K;
-  lp_loop.LpAmpCfg.LpTiaRload = LPTIARLOAD_SHORT;
-  lp_loop.LpAmpCfg.LpTiaSW = LPTIASW(8) | LPTIASW(2) | LPTIASW(15); // short RE to CE
-  AD5940_LPLoopCfgS(&lp_loop);
-
-  AD5940_ConfigureDSP(ADCMUXN_VBIAS0, channel, config.ADCPgaGain, config.ADCSinc2Osr, config.ADCSinc3Osr);
+  AD5940_ConfigureAFEReferences(false, false, true, true);
+  LPLoopCfg_Type lp_loop = {0};
+  AD5940_LPLoopCfgS(&lp_loop);          // Not using it
+  AD5940_ConfigureDSP(ADCMUXN_VREF1P1, channel, config.ADCPgaGain, config.ADCSinc2Osr, config.ADCSinc3Osr);
 
   HSLoopCfg_Type hs_loop = {0};
   AD5940_HSLoopCfgS(&hs_loop);
@@ -263,7 +234,7 @@ AD5940Err sensor::EChem_OCP::generateInitSequence(void) {
 }
 
 /* Generate measurement sequence for CA. This runs indefinitely until test is ended. */
-AD5940Err sensor::EChem_OCP::generateMeasSequence(void) {
+AD5940Err sensor::EChem_Temp::generateMeasSequence(void) {
   AD5940Err error = AD5940ERR_OK;
   uint32_t const* pSeqCmd;
   uint32_t SeqLen;
@@ -307,7 +278,7 @@ AD5940Err sensor::EChem_OCP::generateMeasSequence(void) {
 }
 
 // Function to handle interrupts
-void sensor::EChem_OCP::ISR(void) {
+void sensor::EChem_Temp::ISR(void) {
   if (!isRunning()) return; // Check that the technique is running
 
   std::vector<uint32_t> buf;
@@ -330,13 +301,13 @@ void sensor::EChem_OCP::ISR(void) {
   if (!buf.empty()) processAndStoreData(buf.data(), static_cast<uint32_t>(buf.size()));
 }
 
-bool sensor::EChem_OCP::processAndStoreData(uint32_t* pData, uint32_t numSamples) {
+bool sensor::EChem_Temp::processAndStoreData(uint32_t* pData, uint32_t numSamples) {
   for (uint32_t i = 0; i < numSamples; i++)
-    push(1000.0f * AD5940_ADCCode2Volt(pData[i] & 0xffff, config.ADCPgaGain, config.ADCRefVolt));
+    push(1000.0f * AD5940_ADCCode2Volt(pData[i] & 0xffff, config.ADCPgaGain, config.ADCRefVolt) + 1110.0f);
 
   return true;
 }
 
-void sensor::EChem_OCP::printResult(void) {
+void sensor::EChem_Temp::printResult(void) {
   forEach([](const float& v_mV) { Serial.printf("Voltage = %.5f (mV)\n", v_mV); });
 }

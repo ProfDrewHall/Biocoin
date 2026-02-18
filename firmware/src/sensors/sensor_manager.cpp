@@ -1,22 +1,27 @@
-#include "sensors/SensorManager.h"
+/**
+ * @file sensor_manager.cpp
+ * @brief Active-sensor factory, control dispatch, and TX queue orchestration.
+ */
+
+#include "sensors/sensor_manager.h"
 
 #include "bluetooth/gatt.h"
 #include "bluetooth/transmitdata_task.h"
 #include "drivers/ad5940_hal.h"
-#include "sensors/EChem_CA.h"
-#include "sensors/EChem_CV.h"
-#include "sensors/EChem_DPV.h"
-#include "sensors/EChem_SWV.h"
-#include "sensors/EChem_Imp.h"
-#include "sensors/EChem_OCP.h"
-#include "sensors/EChem_Temp.h"
 #include "sensors/datamover_task.h"
-#include "sensors/Iontophoresis.h"
+#include "sensors/echem_ca.h"
+#include "sensors/echem_cv.h"
+#include "sensors/echem_dpv.h"
+#include "sensors/echem_imp.h"
+#include "sensors/echem_ocp.h"
+#include "sensors/echem_swv.h"
+#include "sensors/echem_temp.h"
+#include "sensors/iontophoresis.h"
 #include "util/debug_log.h"
 #include "util/payload_validation.h"
 
-#include <utility>
 #include <memory>
+#include <utility>
 
 namespace sensor {
   static std::unique_ptr<Sensor> pActiveSensor = nullptr;
@@ -142,8 +147,7 @@ void sensor::interruptHandler() {
 
 void sensor::cleanupSensor() {
   disableAFEInterrupt(); // Stop interrupts
-  if (pActiveSensor)
-    pActiveSensor = nullptr;
+  if (pActiveSensor) pActiveSensor = nullptr;
 
   updateStatus(TestState::NOT_RUNNING);
 }
@@ -154,8 +158,7 @@ void sensor::queueDataForTX(size_t minBytesRequired) {
   size_t available = pActiveSensor->getNumBytesAvailable();
   if (available == 0) return;
 
-  if (minBytesRequired > 0 && available < minBytesRequired) // Is there enough data to send?
-    return;
+  if (minBytesRequired > 0 && available < minBytesRequired) return; // Is there enough data to send?
 
   size_t bytesToSend = (minBytesRequired == 0) ? available : minBytesRequired;
   std::vector<uint8_t> data = pActiveSensor->getData(bytesToSend);

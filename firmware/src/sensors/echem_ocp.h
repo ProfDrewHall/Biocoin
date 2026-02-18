@@ -1,7 +1,12 @@
+/**
+ * @file echem_ocp.h
+ * @brief Open-circuit potential (OCP) technique interface and configuration.
+ */
+
 #pragma once
 
 #include "drivers/ad5940_hal.h"
-#include "sensors/Sensor.h"
+#include "sensors/sensor.h"
 
 #include <queue>
 
@@ -38,31 +43,72 @@ namespace sensor {
 
   class EChem_OCP : public Sensor, public SensorQueue<float> {
   public:
+    /** @brief Construct an Open Circuit Potential (OCP) technique instance. */
     EChem_OCP();
 
-    // Control functions
+    /**
+     * @brief Start OCP sampling by configuring AD5940 and scheduling periodic measurement sequence.
+     * @return True when acquisition starts successfully.
+     */
     bool start(void);
+    /**
+     * @brief Stop OCP sampling and shut down measurement resources.
+     * @return True when stop operation completes.
+     */
     bool stop(void);
+    /**
+     * @brief Parse and apply OCP parameter payload sent by host.
+     * @param data Packed OCP parameter bytes.
+     * @param len Number of bytes in @p data.
+     * @return True when payload is valid and parameters are applied.
+     */
     bool loadParameters(uint8_t* data, uint16_t len);
 
-    // Interrupt service routine
+    /** @brief Handle OCP interrupt workflow, read FIFO data, and queue converted values. */
     void ISR(void);
 
-    // Data processing and retrieval
+    /** @brief Print queued OCP values for serial debug output. */
     void printResult(void);
+    /** @brief Compatibility hook for shared interface (data handling occurs in ISR path). */
     void processData(void);
+    /**
+     * @brief Pop serialized OCP sample bytes from queue.
+     * @param num_items Maximum number of bytes to fetch.
+     * @return Byte vector of packed float samples.
+     */
     std::vector<uint8_t> getData(size_t num_items) override { return SensorQueue<float>::popBytes(num_items); }
+    /** @brief Return count of queued sample bytes pending transmission. */
     size_t getNumBytesAvailable(void) const override { return SensorQueue<float>::size(); }
 
   private:
+    /**
+     * @brief Initialize AD5940 blocks required for OCP mode.
+     * @return 0 on success.
+     */
     int32_t initAD5940(void);
+    /**
+     * @brief Configure OCP runtime resources including sequencer and FIFO.
+     * @return AD5940 status code.
+     */
     AD5940Err setupMeasurement(void);
 
-    // Sequence generation functions
+    /**
+     * @brief Generate one-time OCP initialization sequence.
+     * @return AD5940 status code.
+     */
     AD5940Err generateInitSequence(void);
+    /**
+     * @brief Generate periodic OCP measurement sequence.
+     * @return AD5940 status code.
+     */
     AD5940Err generateMeasSequence(void);
 
-    // Processing functions
+    /**
+     * @brief Convert raw OCP FIFO words into output samples and queue them.
+     * @param pData Raw AD5940 FIFO words.
+     * @param num_samples Number of samples in @p pData.
+     * @return True when conversion/enqueue succeeds.
+     */
     bool processAndStoreData(uint32_t* pData, uint32_t num_samples);
 
     OCPConfig_Type config;

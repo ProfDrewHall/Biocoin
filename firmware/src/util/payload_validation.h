@@ -1,5 +1,8 @@
-// Module: Payload validation helpers.
-// Purpose: Centralize common null/length checks for BLE payload handlers.
+/**
+ * @file payload_validation.h
+ * @brief Reusable payload length/null validation helpers for BLE handlers.
+ * @details Centralizes defensive payload checks so BLE write handlers fail consistently and log context-rich warnings.
+ */
 
 #pragma once
 

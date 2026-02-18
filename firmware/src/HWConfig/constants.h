@@ -1,5 +1,8 @@
-// Module: Top-level hardware constants include.
-// Purpose: Expose config, pins, and invariant checks through one shared header.
+/**
+ * @file constants.h
+ * @brief Aggregate hardware configuration header for firmware modules.
+ * @details Pulls in build checks, runtime config, and board pin mappings through a single include.
+ */
 
 #pragma once
 

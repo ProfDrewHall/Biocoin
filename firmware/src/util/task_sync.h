@@ -1,5 +1,8 @@
-// Module: FreeRTOS task shutdown helpers.
-// Purpose: Provide cooperative stop/wait behavior for long-running worker tasks.
+/**
+ * @file task_sync.h
+ * @brief FreeRTOS task stop/synchronization helper utilities.
+ * @details Provides a shared cooperative stop-and-wait helper for long-running worker tasks.
+ */
 
 #pragma once
 

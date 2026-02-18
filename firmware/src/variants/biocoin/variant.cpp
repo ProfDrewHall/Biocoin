@@ -1,3 +1,9 @@
+/**
+ * @file variant.cpp
+ * @brief Arduino variant pin tables and runtime variant data for BioCoin.
+ * @details Defines the pin mapping table and boot-time pin defaults for the local BioCoin variant.
+ */
+
 /*
   Copyright (c) 2014-2015 Arduino LLC.  All right reserved.
   Copyright (c) 2016 Sandeep Mistry All right reserved.
@@ -17,9 +23,6 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-
-// Module: BioCoin local board variant implementation.
-// Purpose: Provide Arduino pin map and boot-time board pin initialization.
 
 #include "variant.h"
 #include "wiring_constants.h"

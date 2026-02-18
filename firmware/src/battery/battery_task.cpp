@@ -1,6 +1,8 @@
-// Module: Battery monitor task.
-// Purpose: Runs periodic battery sampling and publishes level via BLE BAS.
-// Notes: Uses cooperative stop notification to avoid abrupt task deletion.
+/**
+ * @file battery_task.cpp
+ * @brief FreeRTOS task that samples battery state and updates BLE battery service.
+ * @details Implements cooperative stop behavior via task notifications to avoid abrupt task deletion.
+ */
 
 #include "battery/battery_task.h"
 

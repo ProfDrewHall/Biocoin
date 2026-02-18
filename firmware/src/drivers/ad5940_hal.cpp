@@ -1,3 +1,8 @@
+/**
+ * @file ad5940_hal.cpp
+ * @brief AD5940 hardware-abstraction and board-specific helper implementations.
+ */
+
 #include "drivers/ad5940_hal.h"
 
 #include "HWConfig/constants.h"

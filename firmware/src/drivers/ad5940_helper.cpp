@@ -1,3 +1,8 @@
+/**
+ * @file ad5940_helper.cpp
+ * @brief High-level AD5940 helper implementations for technique setup.
+ */
+
 #include "HWConfig/constants.h"
 #include "drivers/ad5940_hal.h"
 

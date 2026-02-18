@@ -1,3 +1,8 @@
+/**
+ * @file util.cpp
+ * @brief General firmware utility function implementations.
+ */
+
 #include "util/debug_log.h"
 
 #include <Arduino.h>

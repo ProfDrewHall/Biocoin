@@ -1,4 +1,9 @@
-#include "sensors/EChem_CA.h"
+/**
+ * @file echem_ocp.cpp
+ * @brief Open-circuit potential (OCP) technique implementation.
+ */
+
+#include "sensors/echem_ocp.h"
 
 #include "HWConfig/constants.h"
 #include "drivers/ad5940_hal.h"
@@ -7,24 +12,23 @@
 
 
 // Structure for how parameters are passed down from the host
-struct CA_PARAMETERS {
-  float samplingInterval;   // [s] How often the ADC samples by controlling the sleep time between sequences
-  float processingInterval; // [s] How often the interrupt triggers and thus how often the MCU reads/processes the data
-  float maxCurrent;
-  float pulsePotential; // [mV] This is the pulse amplitude
-  uint8_t channel;      // Channel (0-3) to select
+struct OCP_PARAMETERS {
+  float samplingInterval; //[s] This controls how often the ADC samples (time between samples) by controlling the sleep
+                          // time between sequences
+  float processingInterval; //[s] This controls how often the interrupt triggers and therefore, how often the MCU
+                            // reads/processes the data.
+  uint8_t channel;          // Determines which pin the ADC input MUX needs to sample
 } __attribute__((packed));
 
-sensor::EChem_CA::EChem_CA() {
+sensor::EChem_OCP::EChem_OCP() {
   // Initialize structures to known values
-  memset(&config, 0, sizeof(CAConfig_Type));
+  memset(&config, 0, sizeof(OCPConfig_Type));
   config.bParaChanged = bFALSE; // Flag used to indicate parameters have been set
   config.SeqStartAddr = 0;
 
   config.SysClkFreq = SYS_CLOCK_FREQ / 4;
   config.AdcClkFreq = 16000000.0;
 
-  config.RcalVal = 10000.0; // 10kOhm on Biocoin
   config.PwrMod = AFEPWR_LP;
   config.AFEBW = AFEBW_50KHZ;     /*CA does not need high BW*/
   config.ADCPgaGain = ADCPGA_1P5; /*Gain = 1.5V/V is the factory calibrated most accurate gain setting*/
@@ -32,35 +36,26 @@ sensor::EChem_CA::EChem_CA() {
   config.ADCSinc2Osr = ADCSINC2OSR_44; // adjust these as needed if really fast or really slow sampling is required.
                                        // Power vs. SNR tradeoff.
   config.DataFifoSrc = DATATYPE_SINC2; /* Data type must be SINC2 for chrono-amperometric measurement*/
-  config.LptiaRtiaSel = LPTIARTIA_10K;
-  config.LpTiaRf = LPTIARF_OPEN;
-  config.LpTiaRl = LPTIARLOAD_SHORT;
-  config.ExtRtia = bFALSE; // false = not using external TIA resistor, true = using it
 
   // LPDAC Configure, set to midscale values for now (1300mV)
   config.Vzero = ((AD5940_MAX_DAC_OUTPUT - AD5940_MIN_DAC_OUTPUT) / 2 + AD5940_MIN_DAC_OUTPUT); // midscale
-
-  config.ADCRefVolt = 1.82;     /* Measure voltage on ADCRefVolt pin and enter here*/
-  config.ExtRtiaVal = 10000000; // value of external TIA resistor (if used). Update as needed.
-
-  channel = 0;
+  config.Vbias = 1100.0f;   // Common-mode voltage applied to the RE
+  config.ADCRefVolt = 1.82; /* Measure voltage on ADCRefVolt pin and enter here*/
 }
 
-bool sensor::EChem_CA::loadParameters(uint8_t* data, uint16_t len) {
-  dbgInfo("Updating CA parameters...");
-  if (len != sizeof(CA_PARAMETERS)) { // Check to ensure the size is correct
-    dbgError(String("Incorrect payload size! Expected ") + String(sizeof(CA_PARAMETERS)) + String(" but received ") +
-              String(len));
+bool sensor::EChem_OCP::loadParameters(uint8_t* data, uint16_t len) {
+  dbgInfo("Updating OCP parameters...");
+  if (len != sizeof(OCP_PARAMETERS)) { // Check to ensure the size is correct
+    dbgError(String("Incorrect payload size! Expected ") + String(sizeof(OCP_PARAMETERS)) + String(" but received ") +
+             String(len));
     return false;
   }
 
-  CA_PARAMETERS params;
+  OCP_PARAMETERS params;
   memcpy(&params, data, sizeof(params));
 
   dbgInfo(String("\tSampling Interval [s]: ") + String(params.samplingInterval));
   dbgInfo(String("\tProcessing Interval [s]: ") + String(params.processingInterval));
-  dbgInfo(String("\tMax Current [mA]: ") + String(params.maxCurrent));
-  dbgInfo(String("\tPulse Potential [mV]: ") + String(params.pulsePotential));
   dbgInfo(String("\tChannel: ") + String(params.channel));
 
   // Bounds/validity checking of parameters
@@ -69,29 +64,31 @@ bool sensor::EChem_CA::loadParameters(uint8_t* data, uint16_t len) {
     return false;
   }
 
+  if (params.channel != ADCMUXP_AIN6 && params.channel != ADCMUXP_VAFE3 && params.channel != ADCMUXP_AIN0 &&
+      params.channel != ADCMUXP_VAFE2) {
+    dbgError("Invalid OCP channel.");
+    return false;
+  }
+
   // The threshold to set when the interrupt triggers. Number of samples required to reach desired processing time is
   // processing time divided by sampling interval
   config.FifoThresh = (uint32_t)(params.processingInterval / params.samplingInterval);
   config.SamplingInterval = params.samplingInterval;
-  config.SensorBias = params.pulsePotential; /* Sensor bias voltage (VWE - VRE) [mV]*/
   channel = params.channel;
-
-  // Still need to use max_current to calculate the gain resistor
-  // config.LptiaRtiaSel = LPTIARTIA_10K;		// this sets the current range for the experiment
 
   config.bParaChanged = bTRUE;
 
   return true;
 }
 
-bool sensor::EChem_CA::start() {
+bool sensor::EChem_OCP::start() {
   if (config.bParaChanged != bTRUE) return false; // Parameters have not been set
 
-  clear();                    // Clear the data queue
-  power::powerOnAFE(channel); // Turn on the power to the AD5940, select the correct mux input
-  Start_AD5940_SPI();         // Initialize SPI
-  initAD5940();               // Initialize the AD5940
-  setupMeasurement();         // Initialize measurement sequence
+  clear();              // Clear the data queue
+  power::powerOnAFE(0); // Turn on the power to the AD5940, select the correct mux input
+  Start_AD5940_SPI();   // Initialize SPI
+  initAD5940();         // Initialize the AD5940
+  setupMeasurement();   // Initialize measurement sequence
 
   if (AD5940_WakeUp(10) > 10) /* Wakeup AFE by read register, read 10 times at most */
     return false;             /* Wakeup Failed */
@@ -112,7 +109,7 @@ bool sensor::EChem_CA::start() {
   return true;
 }
 
-bool sensor::EChem_CA::stop() {
+bool sensor::EChem_OCP::stop() {
   AD5940_ReadReg(REG_AFE_ADCDAT); /* Any SPI Operation can wakeup AFE */
   /* There is chance this operation will fail because sequencer could put AFE back
       to hibernate mode just after waking up. Use STOPSYNC is better. */
@@ -125,7 +122,7 @@ bool sensor::EChem_CA::stop() {
 }
 
 /* Initialize AD5940 basic blocks like clock */
-int32_t sensor::EChem_CA::initAD5940(void) {
+int32_t sensor::EChem_OCP::initAD5940(void) {
   AD5940_HWReset();                                // Hardware reset
   AD5940_Initialize();                             // Platform configuration
   AD5940_ConfigureClock();                         // Step 1 - Configure clock
@@ -139,10 +136,8 @@ int32_t sensor::EChem_CA::initAD5940(void) {
   return 0;
 }
 
-/**
- * @brief Initialize the amperometric test. Call this function every time before starting amperometric test.
- */
-AD5940Err sensor::EChem_CA::setupMeasurement(void) {
+
+AD5940Err sensor::EChem_OCP::setupMeasurement(void) {
   AD5940Err error = AD5940ERR_OK;
   SEQCfg_Type seq_cfg;
   FIFOCfg_Type fifo_cfg;
@@ -159,16 +154,7 @@ AD5940Err sensor::EChem_CA::setupMeasurement(void) {
   seq_cfg.SeqWrTimer = 0;
   AD5940_SEQCfg(&seq_cfg);
 
-  if (config.LptiaRtiaSel == LPTIARTIA_OPEN) { /* Internal RTIA is opened. User wants to use external RTIA resistor */
-    config.RtiaCalValue.Magnitude = config.ExtRtiaVal;
-  }
-  /* Do RTIA calibration */
-  if (config.ExtRtia == bFALSE) {
-    AD5940_CalibrateRTIA(config.AdcClkFreq, config.SysClkFreq, config.LptiaRtiaSel, config.RcalVal,
-                         &config.RtiaCalValue);
-  }
-
-  /* Now Reconfigure FIFO after Rtia cal for CA measurements*/
+  /* Now Reconfigure FIFO after Rtia cal for OCP measurements*/
   AD5940_FIFOCtrlS(FIFOSRC_SINC3, bFALSE); /* Disable FIFO firstly */
   fifo_cfg.FIFOEn = bTRUE;
   fifo_cfg.FIFOMode = FIFOMODE_FIFO;
@@ -215,7 +201,7 @@ AD5940Err sensor::EChem_CA::setupMeasurement(void) {
 }
 
 /* Generate init sequence for CA. This runs only one time. */
-AD5940Err sensor::EChem_CA::generateInitSequence(void) {
+AD5940Err sensor::EChem_OCP::generateInitSequence(void) {
   AD5940Err error = AD5940ERR_OK;
   uint32_t const* pSeqCmd;
   uint32_t SeqLen;
@@ -224,9 +210,34 @@ AD5940Err sensor::EChem_CA::generateInitSequence(void) {
   AD5940_AFECtrlS(AFECTRL_ALL, bFALSE); // Init all to disable state
 
   AD5940_ConfigureAFEReferences(true, true, true, true);
-  AD5940_ConfigureLPLoop(config.Vzero, config.SensorBias, config.LpTiaRf, config.LpTiaRl, config.ExtRtia,
-                         config.LptiaRtiaSel);
-  AD5940_ConfigureDSP(ADCMUXN_LPTIA0_N, ADCMUXP_LPTIA0_P, config.ADCPgaGain, config.ADCSinc2Osr, config.ADCSinc3Osr);
+
+  LPLoopCfg_Type lp_loop = {};
+  lp_loop.LpDacCfg.LpdacSel = LPDAC0;
+  lp_loop.LpDacCfg.LpDacSrc = LPDACSRC_MMR;
+  lp_loop.LpDacCfg.LpDacSW = LPDACSW_VBIAS2LPPA | LPDACSW_VBIAS2PIN;
+  lp_loop.LpDacCfg.LpDacVzeroMux = LPDACVZERO_6BIT;
+  lp_loop.LpDacCfg.LpDacVbiasMux = LPDACVBIAS_12BIT;
+  lp_loop.LpDacCfg.LpDacRef = LPDACREF_2P5;
+  lp_loop.LpDacCfg.DataRst = bFALSE;
+  lp_loop.LpDacCfg.PowerEn = bTRUE;
+  lp_loop.LpDacCfg.DacData6Bit = (uint32_t)((config.Vzero - AD5940_MIN_DAC_OUTPUT) /
+                                            AD5940_6BIT_DAC_1LSB); // WE voltage. Don't care for this. Keep at midscale.
+  lp_loop.LpDacCfg.DacData12Bit =
+      (uint32_t)((config.Vbias - AD5940_MIN_DAC_OUTPUT) / AD5940_12BIT_DAC_1LSB); // RE voltage
+
+  if (lp_loop.LpDacCfg.DacData12Bit > 4095) lp_loop.LpDacCfg.DacData12Bit = 4095; // truncate if needed
+
+  lp_loop.LpAmpCfg.LpAmpSel = LPAMP0;
+  lp_loop.LpAmpCfg.LpAmpPwrMod =
+      LPAMPPWR_NORM; // OCP does not need to supply current and has no need for BW. Amplifier bias can be reduced.
+  lp_loop.LpAmpCfg.LpPaPwrEn = bTRUE;
+  lp_loop.LpAmpCfg.LpTiaPwrEn = bFALSE;
+  lp_loop.LpAmpCfg.LpTiaRf = LPTIARTIA_10K;
+  lp_loop.LpAmpCfg.LpTiaRload = LPTIARLOAD_SHORT;
+  lp_loop.LpAmpCfg.LpTiaSW = LPTIASW(8) | LPTIASW(2) | LPTIASW(15); // short RE to CE
+  AD5940_LPLoopCfgS(&lp_loop);
+
+  AD5940_ConfigureDSP(ADCMUXN_VBIAS0, channel, config.ADCPgaGain, config.ADCSinc2Osr, config.ADCSinc3Osr);
 
   HSLoopCfg_Type hs_loop = {0};
   AD5940_HSLoopCfgS(&hs_loop);
@@ -255,7 +266,7 @@ AD5940Err sensor::EChem_CA::generateInitSequence(void) {
 }
 
 /* Generate measurement sequence for CA. This runs indefinitely until test is ended. */
-AD5940Err sensor::EChem_CA::generateMeasSequence(void) {
+AD5940Err sensor::EChem_OCP::generateMeasSequence(void) {
   AD5940Err error = AD5940ERR_OK;
   uint32_t const* pSeqCmd;
   uint32_t SeqLen;
@@ -299,7 +310,7 @@ AD5940Err sensor::EChem_CA::generateMeasSequence(void) {
 }
 
 // Function to handle interrupts
-void sensor::EChem_CA::ISR(void) {
+void sensor::EChem_OCP::ISR(void) {
   if (!isRunning()) return; // Check that the technique is running
 
   std::vector<uint32_t> buf;
@@ -322,15 +333,13 @@ void sensor::EChem_CA::ISR(void) {
   if (!buf.empty()) processAndStoreData(buf.data(), static_cast<uint32_t>(buf.size()));
 }
 
-bool sensor::EChem_CA::processAndStoreData(uint32_t* pData, uint32_t numSamples) {
-  for (uint32_t i = 0; i < numSamples; i++) {
-    pData[i] &= 0xffff;
-    push(calculateCurrent(pData[i], config.ADCPgaGain, config.ADCRefVolt, config.RtiaCalValue.Magnitude));
-  }
+bool sensor::EChem_OCP::processAndStoreData(uint32_t* pData, uint32_t numSamples) {
+  for (uint32_t i = 0; i < numSamples; i++)
+    push(1000.0f * AD5940_ADCCode2Volt(pData[i] & 0xffff, config.ADCPgaGain, config.ADCRefVolt));
 
   return true;
 }
 
-void sensor::EChem_CA::printResult(void) {
-  forEach([](const float& i_uA) { Serial.printf("    I = %.5f uA\n", i_uA); });
+void sensor::EChem_OCP::printResult(void) {
+  forEach([](const float& v_mV) { Serial.printf("Voltage = %.5f (mV)\n", v_mV); });
 }

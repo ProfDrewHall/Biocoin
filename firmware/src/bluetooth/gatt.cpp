@@ -1,11 +1,16 @@
+/**
+ * @file gatt.cpp
+ * @brief Custom GATT service/characteristic setup and callback handlers.
+ */
+
 #include "bluetooth/gatt.h"
 #include "HWConfig/constants.h"
 #include "bluetooth/bluetooth.h"
 #include "bluetooth/transmitdata_task.h"
+#include "sensors/sensor_manager.h"
+#include "storage/storage.h"
 #include "util/debug_log.h"
 #include "util/payload_validation.h"
-#include "sensors/SensorManager.h"
-#include "storage/storage.h"
 
 #include <bluefruit.h>
 
@@ -55,7 +60,7 @@ void bluetooth::initGatt() {
   // Sensor Data
   chrSensorData.setProperties(CHR_PROPS_READ | CHR_PROPS_NOTIFY);
   chrSensorData.setPermission(SECMODE_OPEN, SECMODE_NO_ACCESS);
-  chrSensorData.setMaxLen(kMTURequest - kATTHeaderLen);                        // We set this to the MAX, but we will only send in MTU chunks
+  chrSensorData.setMaxLen(kMTURequest - kATTHeaderLen); // We set this to the MAX, but we will only send in MTU chunks
   chrSensorData.begin();
 }
 

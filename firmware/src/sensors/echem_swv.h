@@ -1,7 +1,12 @@
+/**
+ * @file echem_swv.h
+ * @brief Square-wave voltammetry (SWV) technique interface and configuration.
+ */
+
 #pragma once
 
 #include "drivers/ad5940_hal.h"
-#include "sensors/Sensor.h"
+#include "sensors/sensor.h"
 
 #include <queue>
 
@@ -44,17 +49,16 @@ namespace sensor {
     uint32_t StepNumber;    /**< Total number of steps. Limited to 4095. */
     float PulsePeriod;      /**< period of square wave */
     float PulseWidth;       /**< width of square wave pulse*/
-    float Epulse;           /**< Set amplitude of square wave */
+    float Eamplitude;           /**< Set amplitude of square wave */
     float Estep;            /**< Ramp increase in mV */
-    float SampleDelay_High; /**< The time delay between update DAC and start ADC */
-    float SampleDelay_Low;  /**< The time delay between update DAC and start ADC */
-
+    float SampleDelay; /**< The time delay between update DAC and start ADC */
+    
     /* LPDAC Config */
     float ADCRefVolt; /* Vref value */
     float ExtRtiaVal; /* External Rtia value if using one */
 
-    SEQInfo_Type ADC_HighPulse_SeqInfo;
-    SEQInfo_Type ADC_LowPulse_SeqInfo;
+    SEQInfo_Type InitSeqInfo;
+    SEQInfo_Type ADCSeqInfo;
     BoolFlag bFirstDACSeq;   /**< Init DAC sequence */
     SEQInfo_Type DACSeqInfo; /**< The first DAC update sequence info */
     uint32_t CurrStepPos;    /**< Current position */
@@ -63,54 +67,108 @@ namespace sensor {
     float CurrRampCode;      /**<  */
     uint32_t CurrVzeroCode;
     BoolFlag bSqrWaveHiLevel; /**< Flag to indicate square wave high level */
-  } DPVConfig_Type;
+  } SWVConfig_Type;
 
-  enum class DPVRampState : uint8_t {
+  enum class SWVRampState : uint8_t {
     Start = 0, // Estart -> Evertex1
     State1,    // Evertex1 -> Evertex2
     State2,    // Evertex2 -> Estart
     Stop       // Ramp is complete
   };
 
-  class EChem_DPV : public Sensor, public SensorQueue<float> {
+  class EChem_SWV : public Sensor, public SensorQueue<float> {
   public:
-    EChem_DPV();
+    /** @brief Construct a Square Wave Voltammetry (SWV) technique instance. */
+    EChem_SWV();
 
-    // Control functions
+    /**
+     * @brief Start SWV acquisition, including AFE setup and waveform/sequence initialization.
+     * @return True if measurement starts successfully.
+     */
     bool start(void);
+    /**
+     * @brief Stop SWV acquisition and shut down active hardware resources.
+     * @return True when stop path completes.
+     */
     bool stop(void);
+    /**
+     * @brief Parse and apply host-provided SWV parameters.
+     * @param data Packed SWV parameters (without technique selector).
+     * @param len Payload length in bytes.
+     * @return True when payload is valid and configuration is accepted.
+     */
     bool loadParameters(uint8_t* data, uint16_t len);
 
-    // Interrupt service routine
+    /** @brief Handle SWV interrupt events and move sampled data into queue. */
     void ISR(void);
 
-    // Data processing and retrieval
+    /** @brief Print queued SWV samples to serial output for debugging. */
     void printResult(void);
+    /** @brief Compatibility hook for interface parity; SWV processing is ISR-driven. */
     void processData(void);
+    /**
+     * @brief Pop serialized SWV sample bytes from queue.
+     * @param num_items Maximum number of bytes to pop.
+     * @return Byte vector containing packed float samples.
+     */
     std::vector<uint8_t> getData(size_t num_items) override { return SensorQueue<float>::popBytes(num_items); }
+    /** @brief Return queued SWV bytes available for BLE transmission. */
     size_t getNumBytesAvailable(void) const override { return SensorQueue<float>::size(); }
 
   private:
+    /**
+     * @brief Initialize AD5940 hardware blocks for SWV operation.
+     * @return 0 on success.
+     */
     int32_t initAD5940(void);
+    /**
+     * @brief Configure SWV runtime resources after parameters are loaded.
+     * @return AD5940 status code.
+     */
     AD5940Err setupMeasurement(void);
+    /**
+     * @brief Configure low-power loop analog topology used for SWV.
+     * @return AD5940 status code.
+     */
     AD5940Err configureLPLoop(void);
+    /** @brief Compute DAC/timing waveform parameters from SWV settings. */
     void configureWaveformParameters(void);
 
-    // Sequence generation functions
+    /**
+     * @brief Generate one-time SWV initialization sequence.
+     * @return AD5940 status code.
+     */
     AD5940Err generateInitSequence(void);
-    AD5940Err generateADCSequenceHigh(void);
-    AD5940Err generateADCSequenceLow(void);
+    /**
+     * @brief Generate SWV ADC sampling sequence.
+     * @return AD5940 status code.
+     */
+    AD5940Err generateADCSequence(void);
+    /**
+     * @brief Generate/update SWV DAC stepping sequence.
+     * @return AD5940 status code.
+     */
     AD5940Err generateDACSequence(void);
 
+    /**
+     * @brief Advance SWV ramp state and compute next DAC word.
+     * @param pDACData Output pointer for packed DAC register value.
+     * @return AD5940 status code.
+     */
     AD5940Err updateRampDACCode(uint32_t* pDACData);
 
-    // Processing functions
+    /**
+     * @brief Convert raw SWV FIFO words into current samples and enqueue them.
+     * @param pData Pointer to raw FIFO words.
+     * @param num_samples Number of words in @p pData.
+     * @return True when processing succeeds.
+     */
     bool processAndStoreData(uint32_t* pData, uint32_t num_samples);
 
-    DPVConfig_Type config;
+    SWVConfig_Type config;
     uint8_t channel;
 
-    DPVRampState rampState;
+    SWVRampState rampState;
     float LFOSCFreq;
 
     const static uint32_t SEQ_BUFF_SIZE = 128;

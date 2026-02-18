@@ -62,16 +62,16 @@ src/
     variant.h
     variant.cpp
   sensors/
-    EChem_CA.{h,cpp}
-    EChem_CV.{h,cpp}
-    EChem_DPV.{h,cpp}
-    EChem_SWV.{h,cpp}
-    EChem_Imp.{h,cpp}
-    EChem_OCP.{h,cpp}
-    EChem_Temp.{h,cpp}
-    Iontophoresis.{h,cpp}
-    Sensor.{h,cpp}
-    SensorManager.{h,cpp}
+    echem_ca.{h,cpp}
+    echem_cv.{h,cpp}
+    echem_dpv.{h,cpp}
+    echem_swv.{h,cpp}
+    echem_imp.{h,cpp}
+    echem_ocp.{h,cpp}
+    echem_temp.{h,cpp}
+    iontophoresis.{h,cpp}
+    sensor.{h,cpp}
+    sensor_manager.{h,cpp}
     datamover_task.{h,cpp}
   bluetooth/
     bluetooth.{h,cpp}
@@ -88,7 +88,7 @@ src/
     storage.{h,cpp}
   drivers/
     ad5940_hal.{h,cpp}
-    AD5940_Helper.{h,cpp}
+    ad5940_helper.{h,cpp}
   util/
     debug_log.h
     task_sync.h

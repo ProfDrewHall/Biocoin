@@ -1,3 +1,8 @@
+/**
+ * @file main.cpp
+ * @brief Firmware entry point and top-level initialization flow.
+ */
+
 //////////////////////////////////
 //            Headers           //
 //////////////////////////////////
@@ -5,7 +10,7 @@
 #include "battery/battery.h"
 #include "bluetooth/bluetooth.h"
 #include "power/power.h"
-#include "sensors/SensorManager.h"
+#include "sensors/sensor_manager.h"
 #include "storage/storage.h"
 #include "util/debug_log.h"
 #include "util/util.h"

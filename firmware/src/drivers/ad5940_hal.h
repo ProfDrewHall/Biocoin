@@ -1,6 +1,11 @@
+/**
+ * @file ad5940_hal.h
+ * @brief AD5940 hardware-abstraction and board-specific helper declarations.
+ */
+
 #pragma once
 
-#include "drivers/AD5940_Helper.h"
+#include "drivers/ad5940_helper.h"
 
 #include <Arduino.h>
 

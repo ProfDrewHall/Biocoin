@@ -1,3 +1,8 @@
+/**
+ * @file ad5940_helper.h
+ * @brief High-level AD5940 helper function declarations for technique setup.
+ */
+
 #pragma once
 
 #include "drivers/ad5940_hal.h"

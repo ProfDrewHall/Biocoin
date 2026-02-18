@@ -1,5 +1,8 @@
-// Module: Runtime/build configuration constants.
-// Purpose: Centralize firmware versioning and subsystem tunables.
+/**
+ * @file config.h
+ * @brief Project-wide firmware configuration constants and revision metadata.
+ * @details Defines firmware versioning plus subsystem tuning constants used across runtime modules.
+ */
 
 #pragma once
 

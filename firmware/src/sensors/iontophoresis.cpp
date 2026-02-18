@@ -1,9 +1,14 @@
-#include "sensors/Iontophoresis.h"
+/**
+ * @file iontophoresis.cpp
+ * @brief Iontophoresis stimulation and monitoring task implementation.
+ */
+
+#include "sensors/iontophoresis.h"
 
 #include "HWConfig/constants.h"
 #include "drivers/ad5940_hal.h"
 #include "power/power.h"
-#include "sensors/SensorManager.h"
+#include "sensors/sensor_manager.h"
 #include "util/debug_log.h"
 #include "util/task_sync.h"
 

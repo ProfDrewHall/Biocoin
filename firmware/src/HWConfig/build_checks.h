@@ -1,5 +1,8 @@
-// Module: Build-time hardware and variant validation.
-// Purpose: Fail fast when the firmware is built against an incompatible board setup.
+/**
+ * @file build_checks.h
+ * @brief Compile-time validation of board, variant, and build assumptions.
+ * @details Fails the build early when variant/board configuration does not match hardware expectations.
+ */
 
 #pragma once
 

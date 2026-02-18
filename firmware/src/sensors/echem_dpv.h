@@ -1,7 +1,12 @@
+/**
+ * @file echem_dpv.h
+ * @brief Differential pulse voltammetry (DPV) technique interface and configuration.
+ */
+
 #pragma once
 
 #include "drivers/ad5940_hal.h"
-#include "sensors/Sensor.h"
+#include "sensors/sensor.h"
 
 #include <queue>
 
@@ -44,16 +49,17 @@ namespace sensor {
     uint32_t StepNumber;    /**< Total number of steps. Limited to 4095. */
     float PulsePeriod;      /**< period of square wave */
     float PulseWidth;       /**< width of square wave pulse*/
-    float Eamplitude;           /**< Set amplitude of square wave */
+    float Epulse;           /**< Set amplitude of square wave */
     float Estep;            /**< Ramp increase in mV */
-    float SampleDelay; /**< The time delay between update DAC and start ADC */
-    
+    float SampleDelay_High; /**< The time delay between update DAC and start ADC */
+    float SampleDelay_Low;  /**< The time delay between update DAC and start ADC */
+
     /* LPDAC Config */
     float ADCRefVolt; /* Vref value */
     float ExtRtiaVal; /* External Rtia value if using one */
 
-    SEQInfo_Type InitSeqInfo;
-    SEQInfo_Type ADCSeqInfo;
+    SEQInfo_Type ADC_HighPulse_SeqInfo;
+    SEQInfo_Type ADC_LowPulse_SeqInfo;
     BoolFlag bFirstDACSeq;   /**< Init DAC sequence */
     SEQInfo_Type DACSeqInfo; /**< The first DAC update sequence info */
     uint32_t CurrStepPos;    /**< Current position */
@@ -62,53 +68,113 @@ namespace sensor {
     float CurrRampCode;      /**<  */
     uint32_t CurrVzeroCode;
     BoolFlag bSqrWaveHiLevel; /**< Flag to indicate square wave high level */
-  } SWVConfig_Type;
+  } DPVConfig_Type;
 
-  enum class SWVRampState : uint8_t {
+  enum class DPVRampState : uint8_t {
     Start = 0, // Estart -> Evertex1
     State1,    // Evertex1 -> Evertex2
     State2,    // Evertex2 -> Estart
     Stop       // Ramp is complete
   };
 
-  class EChem_SWV : public Sensor, public SensorQueue<float> {
+  class EChem_DPV : public Sensor, public SensorQueue<float> {
   public:
-    EChem_SWV();
+    /** @brief Construct a Differential Pulse Voltammetry (DPV) technique instance. */
+    EChem_DPV();
 
-    // Control functions
+    /**
+     * @brief Start DPV acquisition by configuring waveform/sequences and enabling wakeup timing.
+     * @return True if measurement starts successfully.
+     */
     bool start(void);
+    /**
+     * @brief Stop DPV acquisition and power down related peripherals.
+     * @return True if stop sequence completes.
+     */
     bool stop(void);
+    /**
+     * @brief Parse and apply host-provided DPV parameter payload.
+     * @param data Packed DPV parameter bytes (without technique selector).
+     * @param len Payload size in bytes.
+     * @return True if payload is valid and configuration was applied.
+     */
     bool loadParameters(uint8_t* data, uint16_t len);
 
-    // Interrupt service routine
+    /** @brief Handle DPV interrupt path (DAC updates, FIFO reads, and run completion). */
     void ISR(void);
 
-    // Data processing and retrieval
+    /** @brief Print queued DPV samples to serial debug output. */
     void printResult(void);
+    /** @brief Compatibility hook for shared interface; real processing occurs in ISR helpers. */
     void processData(void);
+    /**
+     * @brief Pop serialized DPV sample bytes from queue.
+     * @param num_items Maximum number of bytes to retrieve.
+     * @return Byte vector of packed sample values.
+     */
     std::vector<uint8_t> getData(size_t num_items) override { return SensorQueue<float>::popBytes(num_items); }
+    /** @brief Return number of queued sample bytes ready for TX. */
     size_t getNumBytesAvailable(void) const override { return SensorQueue<float>::size(); }
 
   private:
+    /**
+     * @brief Initialize AD5940 base hardware blocks for DPV operation.
+     * @return 0 on success.
+     */
     int32_t initAD5940(void);
+    /**
+     * @brief Configure DPV runtime sequences/FIFO after parameters are loaded.
+     * @return AD5940 status code.
+     */
     AD5940Err setupMeasurement(void);
+    /**
+     * @brief Configure low-power loop analog front-end path for DPV waveform generation.
+     * @return AD5940 status code.
+     */
     AD5940Err configureLPLoop(void);
+    /** @brief Derive ramp/pulse timing and DAC step values from user parameters. */
     void configureWaveformParameters(void);
 
-    // Sequence generation functions
+    /**
+     * @brief Generate one-time DPV initialization sequence.
+     * @return AD5940 status code.
+     */
     AD5940Err generateInitSequence(void);
-    AD5940Err generateADCSequence(void);
+    /**
+     * @brief Generate ADC sequence for high pulse phase sampling.
+     * @return AD5940 status code.
+     */
+    AD5940Err generateADCSequenceHigh(void);
+    /**
+     * @brief Generate ADC sequence for low pulse phase sampling.
+     * @return AD5940 status code.
+     */
+    AD5940Err generateADCSequenceLow(void);
+    /**
+     * @brief Generate/update DAC stepping sequence for DPV waveform progression.
+     * @return AD5940 status code.
+     */
     AD5940Err generateDACSequence(void);
 
+    /**
+     * @brief Compute next ramp DAC code and update state machine.
+     * @param pDACData Output pointer receiving packed DAC register value.
+     * @return AD5940 status code.
+     */
     AD5940Err updateRampDACCode(uint32_t* pDACData);
 
-    // Processing functions
+    /**
+     * @brief Convert raw DPV FIFO data to current values and enqueue samples.
+     * @param pData Raw 32-bit FIFO words.
+     * @param num_samples Number of words in @p pData.
+     * @return True when processing succeeds.
+     */
     bool processAndStoreData(uint32_t* pData, uint32_t num_samples);
 
-    SWVConfig_Type config;
+    DPVConfig_Type config;
     uint8_t channel;
 
-    SWVRampState rampState;
+    DPVRampState rampState;
     float LFOSCFreq;
 
     const static uint32_t SEQ_BUFF_SIZE = 128;

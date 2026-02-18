@@ -1,3 +1,8 @@
+/**
+ * @file variant.h
+ * @brief Arduino variant pin and peripheral definitions for the BioCoin board.
+ */
+
  /*
   Copyright (c) 2014-2015 Arduino LLC.  All right reserved.
   Copyright (c) 2016 Sandeep Mistry All right reserved.

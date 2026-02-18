@@ -4,8 +4,8 @@ set -euo pipefail
 fail=0
 
 echo "[sanity] Checking for legacy/mistyped include paths..."
-if rg -n "sensors/sensor\.h|sensors/iontophoresis\.h|drivers/AD5940_hal\.h|tansmitdata_task" src >/dev/null 2>&1; then
-  rg -n "sensors/sensor\.h|sensors/iontophoresis\.h|drivers/AD5940_hal\.h|tansmitdata_task" src
+if rg -n "sensors/(EChem_CA|EChem_CV|EChem_DPV|EChem_SWV|EChem_Imp|EChem_OCP|EChem_Temp|Iontophoresis|SensorManager|Sensor)\.h|drivers/AD5940_Helper\.h|drivers/AD5940_hal\.h|tansmitdata_task" src >/dev/null 2>&1; then
+  rg -n "sensors/(EChem_CA|EChem_CV|EChem_DPV|EChem_SWV|EChem_Imp|EChem_OCP|EChem_Temp|Iontophoresis|SensorManager|Sensor)\.h|drivers/AD5940_Helper\.h|drivers/AD5940_hal\.h|tansmitdata_task" src
   fail=1
 fi
 

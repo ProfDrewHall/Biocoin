@@ -1,5 +1,8 @@
-// Module: Board-level GPIO assignments.
-// Purpose: Keep pin mappings in one place for easier hardware revision updates.
+/**
+ * @file pins.h
+ * @brief Board pin assignments and hardware signal mapping.
+ * @details Centralizes GPIO mappings so hardware revisions can be managed from a single header.
+ */
 
 #pragma once
 

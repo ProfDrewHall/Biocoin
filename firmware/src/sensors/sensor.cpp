@@ -1,4 +1,9 @@
-#include "sensors/Sensor.h"
+/**
+ * @file sensor.cpp
+ * @brief Shared sensor utility implementations.
+ */
+
+#include "sensors/sensor.h"
 #include "drivers/ad5940_hal.h"
 
 

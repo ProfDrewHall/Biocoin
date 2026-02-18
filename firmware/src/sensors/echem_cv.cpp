@@ -1,32 +1,38 @@
-#include "sensors/EChem_DPV.h"
+/**
+ * @file echem_cv.cpp
+ * @brief Cyclic voltammetry (CV) technique implementation.
+ */
+
+#include "sensors/echem_cv.h"
 
 #include "HWConfig/constants.h"
 #include "drivers/ad5940_hal.h"
 #include "power/power.h"
-#include "sensors/SensorManager.h"
+#include "sensors/sensor_manager.h"
 #include "util/debug_log.h"
 
 
-// Structure for DPV parameters
-struct DPV_PARAMETERS {
+// Structure for how parameters are passed down from the host
+struct CV_PARAMETERS {
   float processingInterval; //[s] This controls how often the interrupt triggers and therefore, how often the MCU
                             // reads/processes the data.
   float maxCurrent;
-  float Estart;      //[mv]
-  float Estop;       //[mv]
-  float Epulse;      //[mv]
-  float Estep;       //[mv]
-  float pulseWidth;  //[ms]
-  float pulsePeriod; //[ms]
-  uint8_t channel;
+  float Estart;     //[mv]
+  float Evertex1;   //[mv]
+  float Evertex2;   //[mv]
+  float Estep;      //[mv]
+  float pulseWidth; //[ms]
+  uint8_t channel;  // Channel (0-3) to select
 } __attribute__((packed));
 
-sensor::EChem_DPV::EChem_DPV() {
+
+sensor::EChem_CV::EChem_CV() {
   // Initialize structures to known values
-  memset(&config, 0, sizeof(DPVConfig_Type));
+  memset(&config, 0, sizeof(CVConfig_Type));
 
   config.bParaChanged = bFALSE; // Flag used to indicate parameters have been set
 
+  /* Step1: configure general parameters */
   config.SeqStartAddr = 0x10;     /* leave 16 commands for LFOSC calibration.  */
   config.MaxSeqLen = 1024 - 0x10; /* 4kB/4 = 1024  */
   config.RcalVal = 10000.0;       /* 10kOhm RCAL */
@@ -36,7 +42,7 @@ sensor::EChem_DPV::EChem_DPV() {
   config.AdcClkFreq = 16000000.0;
 
   config.PwrMod = AFEPWR_LP;
-  config.AFEBW = AFEBW_50KHZ;     /*DPV does not need high BW*/
+  config.AFEBW = AFEBW_50KHZ;     /*CV does not need high BW*/
   config.ADCPgaGain = ADCPGA_1P5; /*Gain = 1.5V/V is the factory CVlibrated most accurate gain setting*/
   config.ADCSinc3Osr = ADCSINC3OSR_4;
   config.ADCSinc2Osr = ADCSINC2OSR_44; // adjust these as needed if really fast or really slow sampling is required.
@@ -47,42 +53,53 @@ sensor::EChem_DPV::EChem_DPV() {
   config.LpTiaRf = LPTIARF_OPEN;
   config.LpTiaRl = LPTIARLOAD_SHORT;
 
-  config.VzeroStart = 1300.0f; /* 1.3V */
-  config.VzeroPeak = 1300.0f;  /* 1.3V */
+  // Some default values for CV -- will be overwritten by loadParameters
+  config.RampStartVolt = -1000.0f; /* -1V */
+  config.RampPeakVolt = +1000.0f;  /* +1V */
+  config.StepNumber = 866;
+  config.SampleDelay = 1.0f; /* 1ms */
+  config.VzeroStart = 1300.0f;
+  config.VzeroPeak = 1300.0f;
 
   config.ExtRtiaVal = 10000000; // value of external TIA resistor (if used). Update as needed.
+
+  config.bTestFinished = bFALSE;
+
+  config.bFirstDACSeq = bTRUE;
+
+  rampState = RampState::Start; // Initialize the ramp state
+  channel = 0;
 }
 
-bool sensor::EChem_DPV::loadParameters(uint8_t* data, uint16_t len) {
-  dbgInfo("Updating DPV parameters...");
-  if (len != sizeof(DPV_PARAMETERS)) { // Check to ensure the size is correct
-    dbgError(String("Incorrect payload size! Expected ") + String(sizeof(DPV_PARAMETERS)) + String(" but received ") +
+
+bool sensor::EChem_CV::loadParameters(uint8_t* data, uint16_t len) {
+  dbgInfo("Updating CV parameters...");
+  if (len != sizeof(CV_PARAMETERS)) { // Check to ensure the size is correct
+    dbgError(String("Incorrect payload size! Expected ") + String(sizeof(CV_PARAMETERS)) + String(" but received ") +
               String(len));
     return false;
   }
 
-  DPV_PARAMETERS params;
+  CV_PARAMETERS params;
   memcpy(&params, data, sizeof(params));
 
   dbgInfo(String("\tProcessing Interval [s]: ") + String(params.processingInterval));
   dbgInfo(String("\tMax Current [mA]: ") + String(params.maxCurrent));
   dbgInfo(String("\tStarting Potential [mV]: ") + String(params.Estart));
-  dbgInfo(String("\tStop Potential [mV]: ") + String(params.Estop));
-  dbgInfo(String("\tPulse Potential [mV]: ") + String(params.Epulse));
+  dbgInfo(String("\tVertex1 Potential [mV]: ") + String(params.Evertex1));
+  dbgInfo(String("\tVertex2 Potential [mV]: ") + String(params.Evertex2));
   dbgInfo(String("\tStep Potential [mV]: ") + String(params.Estep));
   dbgInfo(String("\tPulse Width [ms]: ") + String(params.pulseWidth));
-  dbgInfo(String("\tPulse Period [ms]: ") + String(params.pulsePeriod));
   dbgInfo(String("\tChannel: ") + String(params.channel));
 
   // Bounds checking for parameters?
 
   // Set the parameters in the configuration structure
   config.Estart = params.Estart;
-  config.Estop = params.Estop;
-  config.Epulse = params.Epulse;
+  config.Evertex1 = params.Evertex1;
+  config.Evertex2 = params.Evertex2;
   config.Estep = params.Estep;
   config.PulseWidth = params.pulseWidth;
-  config.PulsePeriod = params.pulsePeriod;
   config.FifoThresh = (uint32_t)(params.processingInterval * 1000 / params.pulseWidth);
 
   // Current range
@@ -99,24 +116,29 @@ bool sensor::EChem_DPV::loadParameters(uint8_t* data, uint16_t len) {
     // End Fix
 
   */
+
   channel = params.channel;
+
   config.bParaChanged = bTRUE;
 
   return true;
 }
 
-bool sensor::EChem_DPV::start() {
+
+bool sensor::EChem_CV::start() {
   if (config.bParaChanged != bTRUE) return false; // Parameters have not been set
 
-  clear();                       // Clear the data queue
-  power::powerOnAFE(channel);    // Turn on the power to the AD5940, select the correct mux input
-  Start_AD5940_SPI();            // Initialize SPI
-  initAD5940();                  // Initialize the AD5940
-  configureWaveformParameters(); // Define parameters for the measurement
-  setupMeasurement();            // Initialize measurement sequence
+  clear();                    // Clear the data queue
+  power::powerOnAFE(channel); // Turn on the power to the AD5940, select the correct mux input
+  Start_AD5940_SPI();         // Initialize SPI
+  initAD5940();               // Initialize the AD5940
+  configureRampParameters();  // Define parameters for the measurement
+  setupMeasurement();         // Initialize measurement sequence
 
   if (AD5940_WakeUp(10) > 10) /* Wakeup AFE by read register, read 10 times at most */
     return false;             /* Wakeup Failed */
+  
+  if (rampState == RampState::Stop) return false;
 
   /* Start it */
   WUPTCfg_Type wupt_cfg;
@@ -125,29 +147,23 @@ bool sensor::EChem_DPV::start() {
   wupt_cfg.WuptOrder[0] = SEQID_0;
   wupt_cfg.WuptOrder[1] = SEQID_2;
   wupt_cfg.WuptOrder[2] = SEQID_1;
-  wupt_cfg.WuptOrder[3] = SEQID_3;
-  // changing this adjusts the sample delay on the "low time" of the pulse
+  wupt_cfg.WuptOrder[3] = SEQID_2;
   wupt_cfg.SeqxSleepTime[SEQID_2] = 4;
-  wupt_cfg.SeqxWakeupTime[SEQID_2] = (uint32_t)(LFOSCFreq * config.SampleDelay_Low / 1000.0f) - 4 - 2;
-  // changing this adjusts the sample delay on the "high time" of the pulse
-  wupt_cfg.SeqxSleepTime[SEQID_3] = 4;
-  wupt_cfg.SeqxWakeupTime[SEQID_3] = (uint32_t)(LFOSCFreq * config.SampleDelay_High / 1000.0f) - 4 - 2;
-  // changing this adjusts the "low time" of the pulse.
-  wupt_cfg.SeqxSleepTime[SEQID_1] = 4;
-  wupt_cfg.SeqxWakeupTime[SEQID_1] =
-      (uint32_t)(LFOSCFreq * (config.PulsePeriod - config.PulseWidth - config.SampleDelay_Low) / 1000.0f) - 4 - 2;
-  // changing this adjusts the "high time" of the pulse.
+  wupt_cfg.SeqxWakeupTime[SEQID_2] = (uint32_t)(LFOSCFreq * config.SampleDelay / 1000.0f) - 4 - 2;
   wupt_cfg.SeqxSleepTime[SEQID_0] = 4;
-  wupt_cfg.SeqxWakeupTime[SEQID_0] =
-      (uint32_t)(LFOSCFreq * (config.PulseWidth - config.SampleDelay_High) / 1000.0f) - 4 - 2;
+  wupt_cfg.SeqxWakeupTime[SEQID_0] = (uint32_t)(LFOSCFreq * (config.PulseWidth - config.SampleDelay) / 1000.0f) - 4 - 2;
+  wupt_cfg.SeqxSleepTime[SEQID_1] = wupt_cfg.SeqxSleepTime[SEQID_0];
+  wupt_cfg.SeqxWakeupTime[SEQID_1] = wupt_cfg.SeqxWakeupTime[SEQID_0];
   AD5940_WUPTCfg(&wupt_cfg);
 
   Stop_AD5940_SPI(); // Once the test has started, turn off SPI to reduce power
   setRunning();
+
   return true;
 }
 
-bool sensor::EChem_DPV::stop() {
+
+bool sensor::EChem_CV::stop() {
   if (AD5940_WakeUp(10) > 10) /* Wakeup AFE by read register, read 10 times at most */
     return false;             /* Wakeup Failed */
   /* Start Wupt right now */
@@ -159,17 +175,16 @@ bool sensor::EChem_DPV::stop() {
   Stop_AD5940_SPI();             // Once the test has started, turn off SPI to reduce power
   power::powerOffPeripherials(); // Shut down the test
   setStopped();
-  rampState = DPVRampState::Stop;
   return true;
 }
 
-/* Initialize AD5940 basic blocks like clock */
-int32_t sensor::EChem_DPV::initAD5940(void) {
+
+int32_t sensor::EChem_CV::initAD5940(void) {
   AD5940_HWReset();                                  // Hardware reset
   AD5940_Initialize();                               // Platform configuration
   AD5940_ConfigureClock();                           // Step 1 - Configure clock
   AD5940_ConfigureFIFO(FIFOSIZE_2KB, FIFOSRC_SINC3); // Step 2 - Configure FIFO and Sequencer
-  AD5940_ConfigureSequencer(SEQMEMSIZE_4KB);
+  AD5940_ConfigureSequencer(SEQMEMSIZE_2KB);
   AD5940_ConfigureInterrupts(AFEINTSRC_DATAFIFOTHRESH | AFEINTSRC_ENDSEQ | AFEINTSRC_CUSTOMINT0); // Step 3 - interrupts
   AD5940_ConfigureGPIO();              // Step 4 - Reconfigure GPIO
   AD5940_SleepKeyCtrlS(SLPKEY_UNLOCK); // Enable AFE to enter sleep mode
@@ -178,10 +193,8 @@ int32_t sensor::EChem_DPV::initAD5940(void) {
   return 0;
 }
 
-/**
- * @brief Initialize the test. Call this function every time before starting  test.
- */
-AD5940Err sensor::EChem_DPV::setupMeasurement(void) {
+
+AD5940Err sensor::EChem_CV::setupMeasurement(void) {
   AD5940Err error = AD5940ERR_OK;
   SEQCfg_Type seq_cfg;
   FIFOCfg_Type fifo_cfg;
@@ -203,8 +216,9 @@ AD5940Err sensor::EChem_DPV::setupMeasurement(void) {
 
   if (config.LptiaRtiaSel == LPTIARTIA_OPEN) { /* Internal RTIA is opened. User wants to use external RTIA resistor */
     config.RtiaCalValue.Magnitude = config.ExtRtiaVal;
-    config.RtiaCalValue.Phase = 0;
-  } else {
+  }
+  /* Do RTIA calibration */
+  if (config.ExtRtia == bFALSE) {
     AD5940_CalibrateRTIA(config.AdcClkFreq, config.SysClkFreq, config.LptiaRtiaSel, config.RcalVal,
                          &config.RtiaCalValue);
   }
@@ -222,12 +236,10 @@ AD5940Err sensor::EChem_DPV::setupMeasurement(void) {
   AD5940_INTCClrFlag(AFEINTSRC_ALLINT);
 
   AD5940_SEQGenInit(seq_buffer, SEQ_BUFF_SIZE);
+  /* Generate sequence and write them to SRAM start from address AppCVCfg.SeqStartAddr */
   error = generateInitSequence(); /* initialization sequence */
   if (error != AD5940ERR_OK) return error;
-  /* Generate sequence and write them to SRAM start from address config.SeqStartAddr */
-  error = generateADCSequenceHigh(); /* ADC control sequence for "high" part of DPV pulse */
-  if (error != AD5940ERR_OK) return error;
-  error = generateADCSequenceLow(); /* ADC control sequence for "low" part of DPV pulse */
+  error = generateADCSequence(); /* ADC control sequence */
   if (error != AD5940ERR_OK) return error;
 
   /* Generate DAC sequence */
@@ -236,11 +248,17 @@ AD5940Err sensor::EChem_DPV::setupMeasurement(void) {
   if (error != AD5940ERR_OK) return error;
 
   /* Configure sequence info. */
-  config.ADC_HighPulse_SeqInfo.WriteSRAM = bFALSE;
-  AD5940_SEQInfoCfg(&config.ADC_HighPulse_SeqInfo);
+  config.InitSeqInfo.WriteSRAM = bFALSE;
+  AD5940_SEQInfoCfg(&config.InitSeqInfo);
 
-  config.ADC_LowPulse_SeqInfo.WriteSRAM = bFALSE;
-  AD5940_SEQInfoCfg(&config.ADC_LowPulse_SeqInfo);
+  AD5940_SEQCtrlS(bTRUE); /* Enable sequencer */
+  AD5940_SEQMmrTrig(config.InitSeqInfo.SeqId);
+  while (AD5940_INTCTestFlag(AFEINTC_1, AFEINTSRC_ENDSEQ) == bFALSE)
+    ;
+  AD5940_INTCClrFlag(AFEINTSRC_ENDSEQ);
+
+  config.ADCSeqInfo.WriteSRAM = bFALSE;
+  AD5940_SEQInfoCfg(&config.ADCSeqInfo);
 
   config.DACSeqInfo.WriteSRAM = bFALSE;
   AD5940_SEQInfoCfg(&config.DACSeqInfo);
@@ -254,66 +272,79 @@ AD5940Err sensor::EChem_DPV::setupMeasurement(void) {
   return AD5940ERR_OK;
 }
 
-AD5940Err sensor::EChem_DPV::configureLPLoop(void) {
-  LPLoopCfg_Type lp_loop = {0};
-  lp_loop.LpAmpCfg.LpAmpSel = LPAMP0;
-  lp_loop.LpAmpCfg.LpAmpPwrMod = LPAMPPWR_NORM;
-  lp_loop.LpAmpCfg.LpPaPwrEn = bTRUE;
-  lp_loop.LpAmpCfg.LpTiaPwrEn = bTRUE;
-  lp_loop.LpAmpCfg.LpTiaRf = config.LpTiaRf;
-  lp_loop.LpAmpCfg.LpTiaRload = config.LpTiaRl;
-  if (config.ExtRtia == bTRUE) {
-    lp_loop.LpAmpCfg.LpTiaRtia = LPTIARTIA_OPEN;
-    lp_loop.LpAmpCfg.LpTiaSW = LPTIASW(9) | LPTIASW(2) | LPTIASW(4) | LPTIASW(5) /*|LPTIASW(12)|LPTIASW(13)*/;
-  } else {
-    lp_loop.LpAmpCfg.LpTiaRtia = config.LptiaRtiaSel;
-    // close SW5 to connect to external CTIA to ensure stability across different electrode double layer capacitances
-    lp_loop.LpAmpCfg.LpTiaSW = LPTIASW(5) | LPTIASW(2) | LPTIASW(4) /*|LPTIASW(12)|LPTIASW(13)*/;
+void sensor::EChem_CV::configureRampParameters(void) {
+  config.SampleDelay = 0.75 * config.PulseWidth; /*Time between update DAC and ADC sample. Unit is ms. Sampling occurs
+                                                    at the last 25% of a pulse width by default*/
+  config.RampStartVolt = config.Estart;
+  config.RampPeakVolt = config.Evertex1;
+
+  // user wants to do forward direction ramp to begin
+  if (config.RampPeakVolt > config.RampStartVolt) {
+    config.Estart = config.Estart - config.Estep; // go one step further to ensure startpoint
+    config.RampStartVolt = -1 * config.Estart;
+    config.RampPeakVolt = -1 * config.Evertex1;
+
+    // Segment-specific step counts
+    // Depending on Evertex2 relative to Estart value, deal with endpoints appropriately
+    if (config.Evertex2 == (config.Estart + config.Estep)) {
+      float dV1 = fabsf(config.Evertex1 - config.Estart); // Estart to Evertex1
+      float dV2 =
+          fabsf(config.Evertex2 - config.Evertex1 +
+                config.Estep); // Evertex1 to Evertex2. End one point before Estart, rather than one point after.
+      config.StepNumberSeg1 = (uint32_t)(round(dV1 / config.Estep));
+      config.StepNumberSeg2 = (uint32_t)(round(dV2 / config.Estep));
+      config.StepNumberSeg3 = 0;
+    } else {
+      float dV1 = fabsf(config.Evertex1 - config.Estart);   // Estart to Evertex1
+      float dV2 = fabsf(config.Evertex2 - config.Evertex1); // Evertex1 to Evertex2. End one point after Estart.
+      float dV3 = fabsf(config.Estart - config.Evertex2);   // Evertex2 to Estart
+      config.StepNumberSeg1 = (uint32_t)(round(dV1 / config.Estep));
+      config.StepNumberSeg2 = (uint32_t)(round(dV2 / config.Estep));
+      config.StepNumberSeg3 = (uint32_t)(round(dV3 / config.Estep));
+    }
+    config.StepNumber = config.StepNumberSeg1 + config.StepNumberSeg2 + config.StepNumberSeg3; /* Total steps.*/
   }
+  // user wants to do reverse direction ramp to begin
+  else {
+    config.Estart = config.Estart + config.Estep; // go one step further to ensure startpoint
+    config.RampStartVolt = -1 * config.Estart;
+    config.RampPeakVolt = -1 * config.Evertex1;
 
-  lp_loop.LpDacCfg.LpdacSel = LPDAC0;
-  // just initial DAC settings before DPV truly begins
-  lp_loop.LpDacCfg.DacData6Bit =
-      (uint32_t)((config.VzeroStart - AD5940_MIN_DAC_OUTPUT) / AD5940_6BIT_DAC_1LSB); // WE voltage
-  lp_loop.LpDacCfg.DacData12Bit =
-      (int32_t)(lp_loop.LpDacCfg.DacData6Bit * 64 + config.RampStartVolt / AD5940_12BIT_DAC_1LSB); // RE voltage
-
-  if (lp_loop.LpDacCfg.DacData12Bit < lp_loop.LpDacCfg.DacData6Bit * 64) lp_loop.LpDacCfg.DacData12Bit--;
-  // truncate if needed
-  if (lp_loop.LpDacCfg.DacData12Bit > 4095) lp_loop.LpDacCfg.DacData12Bit = 4095;
-  if (lp_loop.LpDacCfg.DacData6Bit > 63) lp_loop.LpDacCfg.DacData6Bit = 63;
-
-  lp_loop.LpDacCfg.DataRst = bFALSE;
-  lp_loop.LpDacCfg.LpDacSW = LPDACSW_VBIAS2LPPA /*|LPDACSW_VBIAS2PIN*/ | LPDACSW_VZERO2LPTIA /*|LPDACSW_VZERO2PIN*/;
-  lp_loop.LpDacCfg.LpDacRef = LPDACREF_2P5;
-  lp_loop.LpDacCfg.LpDacSrc = LPDACSRC_MMR;
-  lp_loop.LpDacCfg.LpDacVbiasMux = LPDACVBIAS_12BIT; /* Step Vbias. Use 12bit DAC ouput */
-  lp_loop.LpDacCfg.LpDacVzeroMux = LPDACVZERO_6BIT;  /* Base is Vzero. Use 6 bit DAC ouput */
-  lp_loop.LpDacCfg.PowerEn = bTRUE;
-  AD5940_LPLoopCfgS(&lp_loop);
-
-  return AD5940ERR_OK;
+    // Segment-specific step counts
+    // Depending on Evertex2 relative to Estart value, deal with endpoints appropriately
+    if (config.Evertex2 == (config.Estart - config.Estep)) {
+      float dV1 = fabsf(config.Evertex1 - config.Estart); // Estart to Evertex1
+      float dV2 =
+          fabsf(config.Evertex2 - config.Evertex1 -
+                config.Estep); // Evertex1 to Evertex2. End one point before Estart, rather than one point after.
+      config.StepNumberSeg1 = (uint32_t)(round(dV1 / config.Estep));
+      config.StepNumberSeg2 = (uint32_t)(round(dV2 / config.Estep));
+      config.StepNumberSeg3 = 0;
+    } else {
+      float dV1 = fabsf(config.Evertex1 - config.Estart);   // Estart to Evertex1
+      float dV2 = fabsf(config.Evertex2 - config.Evertex1); // Evertex1 to Evertex2. End one point after Estart.
+      float dV3 = fabsf(config.Estart - config.Evertex2);   // Evertex2 to Estart
+      config.StepNumberSeg1 = (uint32_t)(round(dV1 / config.Estep));
+      config.StepNumberSeg2 = (uint32_t)(round(dV2 / config.Estep));
+      config.StepNumberSeg3 = (uint32_t)(round(dV3 / config.Estep));
+    }
+    config.StepNumber = config.StepNumberSeg1 + config.StepNumberSeg2 + config.StepNumberSeg3; /* Total steps.*/
+    config.Estep = -1 * config.Estep;
+  }
 }
 
-void sensor::EChem_DPV::configureWaveformParameters() {
-  config.bSqrWaveHiLevel = bTRUE;
-  rampState = DPVRampState::Start; // Reset the ramp state
-  config.bFirstDACSeq = bTRUE;
 
-  config.SampleDelay_High = 0.75 * config.PulseWidth;
-  config.SampleDelay_Low = 0.75 * (config.PulsePeriod - config.PulseWidth);
+AD5940Err sensor::EChem_CV::generateInitSequence(void) {
+  AD5940Err error = AD5940ERR_OK;
+  uint32_t const* pSeqCmd;
+  uint32_t SeqLen;
 
-  //   Vbias = -Ewe, so RE ramps opposite the desired WE–RE sweep.
-  config.RampStartVolt = -config.Estart;
-  const float stepAbs = fabsf(config.Estep);
-  config.RampPeakVolt = (config.Estop > config.Estart) ? -config.Estop - stepAbs : -config.Estop + stepAbs;
-}
-
-/* Generate init sequence for DPV. This runs only one time. */
-AD5940Err sensor::EChem_DPV::generateInitSequence(void) {
+  AD5940_SEQGenCtrl(bTRUE);             // Start sequence generator here
   AD5940_AFECtrlS(AFECTRL_ALL, bFALSE); // Init all to disable state
-  AD5940_ConfigureAFEReferences(true, true, false, false);
-  configureLPLoop();
+
+  AD5940_ConfigureAFEReferences(true, true, true, true);
+  AD5940_ConfigureLPLoop(config.VzeroStart, config.Estart + config.Estep, config.LpTiaRf, config.LpTiaRl,
+                         config.ExtRtia, config.LptiaRtiaSel);
   AD5940_ConfigureDSP(ADCMUXN_LPTIA0_N, ADCMUXP_LPTIA0_P, config.ADCPgaGain, config.ADCSinc2Osr, config.ADCSinc3Osr);
 
   HSLoopCfg_Type hs_loop = {0};
@@ -321,19 +352,36 @@ AD5940Err sensor::EChem_DPV::generateInitSequence(void) {
 
   /* Enable all of them. They are automatically turned off during hibernate mode to save power */
   AD5940_AFECtrlS(AFECTRL_HPREFPWR | AFECTRL_SINC2NOTCH, bTRUE);
+  AD5940_SEQGpioCtrlS(0);
 
+  /* Sequence end. */
+  AD5940_SEQGenInsert(SEQ_STOP()); /* Add one extra command to disable sequencer for initialization sequence because we
+                                      only want it to run one time. */
+
+  /* Stop sequence generator here */
+  AD5940_SEQGenCtrl(bFALSE); /* Stop sequencer generator */
+  error = AD5940_SEQGenFetchSeq(&pSeqCmd, &SeqLen);
+  if (error == AD5940ERR_OK) {
+    AD5940_StructInit(&config.InitSeqInfo, sizeof(config.InitSeqInfo));
+    if (SeqLen >= config.MaxSeqLen) return AD5940ERR_SEQLEN;
+
+    config.InitSeqInfo.SeqId = SEQID_3;
+    config.InitSeqInfo.SeqRamAddr = config.SeqStartAddr;
+    config.InitSeqInfo.pSeqCmd = pSeqCmd;
+    config.InitSeqInfo.SeqLen = SeqLen;
+    config.InitSeqInfo.WriteSRAM = bTRUE;
+    AD5940_SEQInfoCfg(&config.InitSeqInfo);
+  } else
+    return error; /* Error */
   return AD5940ERR_OK;
 }
 
-/**
- * @brief Generate ADC control sequence and write the commands to SRAM.
- * @return return error code.
- */
-// ADC sampling sequence for the "high" part of the DPV pulse
-AD5940Err sensor::EChem_DPV::generateADCSequenceHigh(void) {
+
+AD5940Err sensor::EChem_CV::generateADCSequence(void) {
   AD5940Err error = AD5940ERR_OK;
   const uint32_t* pSeqCmd;
   uint32_t SeqLen;
+
   uint32_t WaitClks;
   ClksCalInfo_Type clks_cal;
 
@@ -359,77 +407,21 @@ AD5940Err sensor::EChem_DPV::generateADCSequenceHigh(void) {
   AD5940_SEQGenCtrl(bFALSE); /* Stop sequencer generator */
 
   if (error == AD5940ERR_OK) {
-    AD5940_StructInit(&config.ADC_HighPulse_SeqInfo, sizeof(config.ADC_HighPulse_SeqInfo));
-    if (SeqLen >= config.MaxSeqLen) return AD5940ERR_SEQLEN;
-    config.ADC_HighPulse_SeqInfo.SeqId = SEQID_2;
-    config.ADC_HighPulse_SeqInfo.SeqRamAddr = config.SeqStartAddr;
-    config.ADC_HighPulse_SeqInfo.pSeqCmd = pSeqCmd;
-    config.ADC_HighPulse_SeqInfo.SeqLen = SeqLen;
-    config.ADC_HighPulse_SeqInfo.WriteSRAM = bTRUE;
-    AD5940_SEQInfoCfg(&config.ADC_HighPulse_SeqInfo);
+    AD5940_StructInit(&config.ADCSeqInfo, sizeof(config.ADCSeqInfo));
+    if ((SeqLen + config.InitSeqInfo.SeqLen) >= config.MaxSeqLen) return AD5940ERR_SEQLEN;
+    config.ADCSeqInfo.SeqId = SEQID_2;
+    config.ADCSeqInfo.SeqRamAddr = config.InitSeqInfo.SeqRamAddr + config.InitSeqInfo.SeqLen;
+    config.ADCSeqInfo.pSeqCmd = pSeqCmd;
+    config.ADCSeqInfo.SeqLen = SeqLen;
+    config.ADCSeqInfo.WriteSRAM = bTRUE;
+    AD5940_SEQInfoCfg(&config.ADCSeqInfo);
   } else
     return error; /* Error */
   return AD5940ERR_OK;
 }
 
-// ADC sampling sequence for the "low" part of the DPV pulse
-AD5940Err sensor::EChem_DPV::generateADCSequenceLow(void) {
-  AD5940Err error = AD5940ERR_OK;
-  const uint32_t* pSeqCmd;
-  uint32_t SeqLen;
-  uint32_t WaitClks;
-  ClksCalInfo_Type clks_cal;
 
-  clks_cal.DataCount = 1; /* Sample one point everytime */
-  clks_cal.DataType = config.DataFifoSrc;
-  clks_cal.ADCSinc3Osr = config.ADCSinc3Osr;
-  clks_cal.ADCSinc2Osr = config.ADCSinc2Osr;
-  clks_cal.ADCAvgNum = 0; /* Don't care */
-  clks_cal.RatioSys2AdcClk = config.SysClkFreq / config.AdcClkFreq;
-  AD5940_ClksCalculate(&clks_cal, &WaitClks);
-
-  AD5940_SEQGenCtrl(bTRUE);
-  AD5940_AFECtrlS(AFECTRL_ADCPWR, bTRUE);
-  AD5940_SEQGenInsert(SEQ_WAIT(16 * 250));                                       /* wait 250us for reference power up */
-  AD5940_AFECtrlS(AFECTRL_ADCCNV | AFECTRL_SINC2NOTCH, bTRUE);                   /* Start ADC convert and DFT */
-  AD5940_SEQGenInsert(SEQ_WAIT(WaitClks));                                       /* wait for first data ready */
-  AD5940_AFECtrlS(AFECTRL_ADCPWR | AFECTRL_ADCCNV | AFECTRL_SINC2NOTCH, bFALSE); /* Stop ADC */
-  AD5940_SEQGenInsert(SEQ_WAIT(20));                                             /* allow data to reach FIFO */
-  AD5940_EnterSleepS();                                                          /* Hibernate */
-  error = AD5940_SEQGenFetchSeq(&pSeqCmd, &SeqLen);
-  AD5940_SEQGenCtrl(bFALSE); /* Stop sequencer generator */
-  if (error != AD5940ERR_OK) return error;
-
-  AD5940_StructInit(&config.ADC_LowPulse_SeqInfo, sizeof(config.ADC_LowPulse_SeqInfo));
-  if (SeqLen >= config.MaxSeqLen) return AD5940ERR_SEQLEN; /* obviously too large */
-
-  /* Put LOW at the very end of the available window. */
-  const uint32_t lowStart = config.SeqStartAddr + (config.MaxSeqLen - SeqLen);
-  const uint32_t highEnd = config.ADC_HighPulse_SeqInfo.SeqRamAddr + config.ADC_HighPulse_SeqInfo.SeqLen;
-
-  /* Require non-overlap with HIGH and leave at least some room in the middle for DAC. */
-  if (highEnd >= lowStart) return AD5940ERR_SEQLEN;
-
-  /* ---- Write LOW sequence at the end ---- */
-  config.ADC_LowPulse_SeqInfo.SeqId = SEQID_3;
-  config.ADC_LowPulse_SeqInfo.SeqRamAddr = lowStart;
-  config.ADC_LowPulse_SeqInfo.pSeqCmd = pSeqCmd;
-  config.ADC_LowPulse_SeqInfo.SeqLen = SeqLen;
-  config.ADC_LowPulse_SeqInfo.WriteSRAM = bTRUE;
-  AD5940_SEQInfoCfg(&config.ADC_LowPulse_SeqInfo);
-
-  return AD5940ERR_OK;
-}
-
-/**
- * @brief Update DAC sequence in SRAM in real time.
- * @details This function generates sequences to update DAC code step by step. It's also called in interrupt
- *          function when half commands in SRAM has been completed. We don't use sequence generator to save memory.
- *          Check more details from documentation of this example. @ref Ramp_Test_Example
- * @return return error code
- *
- * */
-AD5940Err sensor::EChem_DPV::generateDACSequence(void) {
+AD5940Err sensor::EChem_CV::generateDACSequence(void) {
 #define SEQLEN_ONESTEP 4L /* How many sequence commands are needed to update LPDAC. */
 #define CURRBLK_BLK0 0 /* Current block is BLOCK0 */
 #define CURRBLK_BLK1 1 /* Current block is BLOCK1 */
@@ -447,38 +439,34 @@ AD5940Err sensor::EChem_DPV::generateDACSequence(void) {
   static uint32_t DACSeqBlk0Addr, DACSeqBlk1Addr;
   static uint32_t StepsRemainning, StepsPerBlock, DACSeqCurrBlk;
 
-  const float dir = (config.Estop > config.Estart) ? -1.0f : +1.0f; // because Vbias = -Ewe
-  const float stepAbs = fabsf(config.Estep);
-  const float pulseAbs = fabsf(config.Epulse);
-  config.StepNumber = (uint32_t)(2.0f * round((fabsf(config.RampPeakVolt - config.RampStartVolt) / stepAbs)));
-
   /* Do some math calculations */
   if (config.bFirstDACSeq == bTRUE) {
     /* Reset bIsFirstRun at end of function. */
     int32_t DACSeqLenMax;
     StepsRemainning = config.StepNumber;
-    DACSeqLenMax = (int32_t)config.MaxSeqLen - (int32_t)config.ADC_HighPulse_SeqInfo.SeqLen -
-                   (int32_t)config.ADC_LowPulse_SeqInfo.SeqLen;
+    DACSeqLenMax = (int32_t)config.MaxSeqLen - (int32_t)config.InitSeqInfo.SeqLen - (int32_t)config.ADCSeqInfo.SeqLen;
     if (DACSeqLenMax < SEQLEN_ONESTEP * 4) return AD5940ERR_SEQLEN; /* No enough sequencer SRAM available */
     DACSeqLenMax -= SEQLEN_ONESTEP * 2;                             /* Reserve commands each block */
     StepsPerBlock = DACSeqLenMax / SEQLEN_ONESTEP / 2;
-    DACSeqBlk0Addr = config.ADC_HighPulse_SeqInfo.SeqRamAddr + config.ADC_HighPulse_SeqInfo.SeqLen;
+    DACSeqBlk0Addr = config.ADCSeqInfo.SeqRamAddr + config.ADCSeqInfo.SeqLen;
     DACSeqBlk1Addr = DACSeqBlk0Addr + StepsPerBlock * SEQLEN_ONESTEP;
     DACSeqCurrBlk = CURRBLK_BLK0;
 
     /* Analog part */
-    config.DACCodePerStep = dir * (pulseAbs / AD5940_12BIT_DAC_1LSB);
-    config.DACCodePerRamp = dir * (stepAbs / AD5940_12BIT_DAC_1LSB);
+    config.DACCodePerStep = config.Estep / AD5940_12BIT_DAC_1LSB;
 
 #if ALIGIN_VOLT2LSB
     config.DACCodePerStep = (int32_t)config.DACCodePerStep;
-    config.DACCodePerRamp = (int32_t)config.DACCodePerRamp;
 #endif
+    if (config.DACCodePerStep > 0)
+      config.bDACCodeInc = bTRUE;
+    else {
+      config.DACCodePerStep = -config.DACCodePerStep; /* Always positive */
+      config.bDACCodeInc = bFALSE;
+    }
 
-    config.CurrRampCode =
-        config.RampStartVolt / AD5940_12BIT_DAC_1LSB + (config.DACCodePerStep - config.DACCodePerRamp);
-
-    rampState = DPVRampState::Start; // Reset the ramp state
+    config.CurrRampCode = config.RampStartVolt / AD5940_12BIT_DAC_1LSB;
+    rampState = RampState::Start; // Reset the ramp state
     config.CurrStepPos = 0;
     bCmdForSeq0 = bTRUE; /* Start with SEQ0 */
   }
@@ -560,9 +548,9 @@ AD5940Err sensor::EChem_DPV::generateDACSequence(void) {
   return AD5940ERR_OK;
 }
 
-// Function to handle interrupts
-void sensor::EChem_DPV::ISR(void) {
-  if (!isRunning() && rampState != DPVRampState::Stop) return;
+
+void sensor::EChem_CV::ISR(void) {
+  if (!isRunning() && rampState != RampState::Stop) return; // Check that the technique is running
 
   std::vector<uint32_t> buf;
   uint32_t numSamples = 0;
@@ -589,13 +577,19 @@ void sensor::EChem_DPV::ISR(void) {
     AD5940_SleepKeyCtrlS(SLPKEY_UNLOCK); /* Unlock so sequencer can put AD5940 to sleep */
     AD5940_EnterSleepS();
   }
+
   if (interruptFlag & AFEINTSRC_ENDSEQ) {
     numSamples = AD5940_FIFOGetCnt();
     buf.resize(numSamples);
     AD5940_FIFORd(buf.data(), numSamples);
     AD5940_INTCClrFlag(AFEINTSRC_ENDSEQ);
 
+    /* Reset variables so measurement can be restarted*/
+    rampState = RampState::Start; // Reset the ramp state
+    config.bFirstDACSeq = bTRUE;
+    config.bDACCodeInc = bTRUE;
     // generateDACSequence();
+
     stop();
     updateStatus(TestState::NOT_RUNNING); // Update the test state
   }
@@ -605,49 +599,58 @@ void sensor::EChem_DPV::ISR(void) {
   if (!buf.empty()) processAndStoreData(buf.data(), static_cast<uint32_t>(buf.size()));
 }
 
-// Calculate DAC code step by step
-AD5940Err sensor::EChem_DPV::updateRampDACCode(uint32_t* pDACData) {
+
+AD5940Err sensor::EChem_CV::updateRampDACCode(uint32_t* pDACData) {
   if (pDACData == nullptr) return AD5940ERR_PARA;
 
   // 1) Handle state transitions (only when thresholds are crossed)
   switch (rampState) {
-  case DPVRampState::Start:
+  case RampState::Start: // Estart -> Evertex1
     config.CurrVzeroCode = (uint32_t)((config.VzeroStart - AD5940_MIN_DAC_OUTPUT) / AD5940_6BIT_DAC_1LSB);
-    rampState = DPVRampState::State1;
+    config.bDACCodeInc = (config.RampPeakVolt > config.RampStartVolt) ? bTRUE : bFALSE;
+    rampState = RampState::Vertex1;
     break;
-  case DPVRampState::State1:
-    if (config.CurrStepPos >= config.StepNumber / 2) {
+
+  case RampState::Vertex1: // Evertex1 -> Evertex2
+    if (config.CurrStepPos >= config.StepNumberSeg1) {
       config.CurrVzeroCode = (uint32_t)((config.VzeroPeak - AD5940_MIN_DAC_OUTPUT) / AD5940_6BIT_DAC_1LSB);
-      rampState = DPVRampState::State2;
+      config.bDACCodeInc = (config.RampPeakVolt > -config.Evertex2) ? bFALSE : bTRUE;
+      rampState = RampState::Vertex2;
     }
     break;
-  case DPVRampState::State2:
-    if (config.CurrStepPos >= config.StepNumber) rampState = DPVRampState::Stop;
+
+  case RampState::Vertex2: // Evertex2 -> Estart
+    if (config.CurrStepPos >= (config.StepNumberSeg1 + config.StepNumberSeg2)) {
+      config.CurrVzeroCode = (uint32_t)((config.VzeroStart - AD5940_MIN_DAC_OUTPUT) / AD5940_6BIT_DAC_1LSB);
+      config.bDACCodeInc = (config.RampStartVolt > -config.Evertex2) ? bTRUE : bFALSE;
+      rampState = RampState::Return;
+    }
     break;
-  case DPVRampState::Stop:
+
+  case RampState::Return:
+    if (config.CurrStepPos >= config.StepNumber) rampState = RampState::Stop;
+    break;
+
+  case RampState::Stop:
     break;
   }
 
   // 2) Advance step position and ramp code
   config.CurrStepPos++;
-  config.CurrRampCode -=
-      (config.bSqrWaveHiLevel ? (config.DACCodePerStep - config.DACCodePerRamp) : -config.DACCodePerStep);
-  config.bSqrWaveHiLevel = (config.bSqrWaveHiLevel == bTRUE) ? bFALSE : bTRUE;
+  config.CurrRampCode += (config.bDACCodeInc ? +config.DACCodePerStep : -config.DACCodePerStep);
 
   // 3) Compose VZERO (6b) + VBIAS (12b), with saturation
-  uint32_t VzeroCode = config.CurrVzeroCode;
+  uint32_t VzeroCode = std::min<uint32_t>(config.CurrVzeroCode, 63); // VzeroCode is 6 bits, max value is 63
   uint32_t VbiasCode = (uint32_t)(VzeroCode * 64 + config.CurrRampCode);
   if (VbiasCode < (VzeroCode * 64)) VbiasCode--;
-
-  /* Truncate */
   if (VbiasCode > 4095) VbiasCode = 4095;
-  if (VzeroCode > 63) VzeroCode = 63;
 
   *pDACData = (VzeroCode << 12) | VbiasCode;
   return AD5940ERR_OK;
 }
 
-bool sensor::EChem_DPV::processAndStoreData(uint32_t* pData, uint32_t numSamples) {
+
+bool sensor::EChem_CV::processAndStoreData(uint32_t* pData, uint32_t numSamples) {
   for (uint32_t i = 0; i < numSamples; i++) {
     pData[i] &= 0xffff;
     push(calculateCurrent(pData[i], config.ADCPgaGain, config.ADCRefVolt, config.RtiaCalValue.Magnitude));
@@ -656,6 +659,7 @@ bool sensor::EChem_DPV::processAndStoreData(uint32_t* pData, uint32_t numSamples
   return true;
 }
 
-void sensor::EChem_DPV::printResult(void) {
+
+void sensor::EChem_CV::printResult(void) {
   forEach([](const float& i_uA) { Serial.printf("    I = %.5f uA\n", i_uA); });
 }

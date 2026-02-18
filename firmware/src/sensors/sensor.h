@@ -1,3 +1,8 @@
+/**
+ * @file sensor.h
+ * @brief Base sensor interface and typed sensor queue utilities.
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -14,16 +19,45 @@ namespace sensor {
     virtual ~Sensor() = default;
 
     // Standard control interface
+    /**
+     * @brief Start sensor technique acquisition.
+     * @return True when run starts successfully.
+     */
     virtual bool start() = 0;
+    /**
+     * @brief Stop sensor technique acquisition.
+     * @return True when run stops successfully.
+     */
     virtual bool stop() = 0;
+    /**
+     * @brief Apply host-provided parameter payload to this sensor technique.
+     * @param data Technique-specific packed parameter bytes.
+     * @param len Payload length in bytes.
+     * @return True when payload is valid and applied.
+     */
     virtual bool loadParameters(uint8_t* data, uint16_t len) = 0;
 
     // Interrupt service routine
+    /**
+     * @brief Handle technique-specific interrupt processing path.
+     */
     virtual void ISR() = 0;
 
     // Standard data interface
+    /**
+     * @brief Retrieve serialized measurement data bytes from sensor queue.
+     * @param num_items Maximum number of bytes requested.
+     * @return Byte vector of serialized samples.
+     */
     virtual std::vector<uint8_t> getData(size_t num_items) = 0;
+    /**
+     * @brief Get number of queued sample bytes currently available.
+     * @return Byte count ready for transmission.
+     */
     virtual size_t getNumBytesAvailable() const = 0;
+    /**
+     * @brief Print queued samples to debug output.
+     */
     virtual void printResult() = 0;
 
     // Status
@@ -32,6 +66,14 @@ namespace sensor {
 
   protected:
     // Utility functions for ADC scaling and current calculation
+    /**
+     * @brief Convert ADC code into current in microamps using gain/reference/RTIA settings.
+     * @param code Raw ADC code.
+     * @param PGAGain ADC PGA gain constant.
+     * @param VRef ADC reference voltage in volts.
+     * @param rTIA Transimpedance resistance in ohms.
+     * @return Current in microamps.
+     */
     float calculateCurrent(uint32_t code, uint32_t PGAGain, float VRef, float rTIA);
 
     // State control

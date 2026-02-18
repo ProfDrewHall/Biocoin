@@ -1,9 +1,14 @@
+/**
+ * @file power.cpp
+ * @brief Power-domain control for sensors, LEDs, and stimulation circuits.
+ */
+
 #include "power/power.h"
 
 #include "HWConfig/constants.h"
-#include "util/debug_log.h"
 #include "drivers/ad5940_hal.h"
 #include "power/led_task.h"
+#include "util/debug_log.h"
 
 #include <nrf_sdm.h>
 #include <nrf_soc.h>
@@ -12,10 +17,10 @@ constexpr uint32_t kStartupDelay = 50; // Time in ms to let peripherals come onl
 
 void power::init() {
   dbgInfo("Initializing pins...");
-  initPins();               // Set the pin directions
-  powerOffPeripherials();   // Default states
-  enableDCDC();             // Turn on the dc-dc converter to save power
-  startHeartbeatTask();     // Start the LED heartbeat
+  initPins();             // Set the pin directions
+  powerOffPeripherials(); // Default states
+  enableDCDC();           // Turn on the dc-dc converter to save power
+  startHeartbeatTask();   // Start the LED heartbeat
 }
 
 void power::initPins() {
@@ -102,8 +107,8 @@ void power::powerOnAFE(uint8_t muxChannel) {
   digitalWrite(PIN_TEMP_VDD_CTRL, HIGH);       // Temperature off (active low)
   digitalWrite(PIN_MUX_EN, HIGH);              // Enable the MUX
 
-  //digitalWrite(PIN_IONTOPH_PMOS_CTRL,
-  //             HIGH); // Turn off iontopheresis switch -- the power down state assumes LDO is off to save power
+  // digitalWrite(PIN_IONTOPH_PMOS_CTRL,
+  //              HIGH); // Turn off iontopheresis switch -- the power down state assumes LDO is off to save power
 
   setAFEChannel(muxChannel);
 
@@ -116,8 +121,8 @@ void power::powerOnTempSensor() {
   digitalWrite(PIN_TEMP_VDD_CTRL, LOW);        // Turn on the temp load switch (active low)
   digitalWrite(PIN_AFE_VDD_CTRL, LOW);         // Turn on the AFE load switch (active low)
 
-  //digitalWrite(PIN_IONTOPH_PMOS_CTRL,
-  //             HIGH); // Turn off iontopheresis switch -- the power down state assumes LDO is off to save power
+  // digitalWrite(PIN_IONTOPH_PMOS_CTRL,
+  //              HIGH); // Turn off iontopheresis switch -- the power down state assumes LDO is off to save power
 
   delay(kStartupDelay); // Needed to let the chips startup before we do anything
 }
@@ -140,14 +145,17 @@ void power::powerOffPeripherials() {
   digitalWrite(PIN_BOOST_EN, LOW);            // Turn off the 20V boost converter
   digitalWrite(PIN_BUCKBOOST_AUX_EN, LOW);    // Turn off the current monitoring amplifier
 
-  digitalWrite(PIN_TEMP_VDD_CTRL, LOW);       // Turn on the temp load switch (active low) -- Note this is behind the LDO, so
-                                              // it is "on" but this reduces pin power
-  digitalWrite(PIN_AFE_VDD_CTRL, LOW);        // Turn on the AFE load switch (active low) -- Note this is behind the LDO, so it
-                                              // is "on" but this reduces pin power
+  digitalWrite(PIN_TEMP_VDD_CTRL,
+               LOW); // Turn on the temp load switch (active low) -- Note this is behind the LDO, so
+                     // it is "on" but this reduces pin power
+  digitalWrite(PIN_AFE_VDD_CTRL,
+               LOW); // Turn on the AFE load switch (active low) -- Note this is behind the LDO, so it
+                     // is "on" but this reduces pin power
 
-  digitalWrite(PIN_IONTOPH_NMOS_CTRL, LOW);   // Disable iontopheresis isolation switches
-  digitalWrite(PIN_IONTOPH_PMOS_CTRL, LOW);   // NOTE: This is LOW ("on"), but behind the LDO so we keep the state low to
-                                              // reduce power. If the LDO is powered, we need to turn this off
+  digitalWrite(PIN_IONTOPH_NMOS_CTRL, LOW); // Disable iontopheresis isolation switches
+  digitalWrite(PIN_IONTOPH_PMOS_CTRL,
+               LOW); // NOTE: This is LOW ("on"), but behind the LDO so we keep the state low to
+                     // reduce power. If the LDO is powered, we need to turn this off
 
   disconnectInputGPIO(PIN_AFE_IntPin_GPIO0); // Enabled when needed, saves power
   disconnectInputGPIO(PIN_CURRENT_SENSE_OUT);
@@ -155,7 +163,7 @@ void power::powerOffPeripherials() {
   disconnectInputGPIO(PIN_AFE_GPIO2);
   disconnectInputGPIO(PIN_AFE_GPIO4_AUX);
 
-  digitalWrite(PIN_MUX_EN, LOW);              // Turn off the mux
+  digitalWrite(PIN_MUX_EN, LOW); // Turn off the mux
   digitalWrite(PIN_MUX_A0, LOW);
   digitalWrite(PIN_MUX_A1, LOW);
   digitalWrite(PIN_AFE_RESET, LOW);

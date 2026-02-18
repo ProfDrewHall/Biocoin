@@ -1,7 +1,12 @@
+/**
+ * @file echem_temp.h
+ * @brief Temperature measurement technique interface and configuration.
+ */
+
 #pragma once
 
 #include "drivers/ad5940_hal.h"
-#include "sensors/Sensor.h"
+#include "sensors/sensor.h"
 
 #include <queue>
 
@@ -19,7 +24,6 @@ namespace sensor {
     uint32_t FifoThresh;    /* FIFO threshold. Should be N*4 */
     float SamplingInterval; /* decides the period of WakeupTimer who will trigger sequencer periodically. DFT number and
                                sample frequency decides the maxim interval. */
-    float RcalVal;          /* Rcal value in Ohm */
     uint32_t PwrMod;        /* Control Chip power mode(LP/HP) */
 
     /* Receive path configuration */
@@ -29,53 +33,83 @@ namespace sensor {
     uint8_t ADCSinc3Osr; /* SINC3 OSR selection. ADCSINC3OSR_2, ADCSINC3OSR_4 */
     uint8_t ADCSinc2Osr; /* SINC2 OSR selection. ADCSINC2OSR_22...ADCSINC2OSR_1333 */
     uint32_t DataFifoSrc;      /* DataFIFO source. DATATYPE_ADCRAW, DATATYPE_SINC3 or DATATYPE_SINC2*/
-    uint32_t LptiaRtiaSel;     /* Use internal RTIA, select from RTIA_INT_200, RTIA_INT_1K, RTIA_INT_5K, RTIA_INT_10K,
-                                  RTIA_INT_20K, RTIA_INT_40K, RTIA_INT_80K, RTIA_INT_160K */
-    uint32_t LpTiaRf;          /* Rfilter select */
-    uint32_t LpTiaRl;          /* SE0 Rload select */
-    fImpPol_Type RtiaCalValue; /* Calibrated Rtia value */
-    BoolFlag ExtRtia;          /* Use internal or external Rtia */
-
-    /* LPDAC Config */
-    float Vzero;      /* Voltage on SE0 pin and Vzero*/
-    float SensorBias; /* Sensor bias voltage = VRE0 - VSE0 */
     float ADCRefVolt; /*Vref value */
-    float ExtRtiaVal; /* External Rtia value if using one */
 
     SEQInfo_Type InitSeqInfo;
     SEQInfo_Type MeasureSeqInfo;
-  } CAConfig_Type;
+  } TempConfig_Type;
 
-  class EChem_CA : public Sensor, public SensorQueue<float> {
+  class EChem_Temp : public Sensor, public SensorQueue<float> {
   public:
-    EChem_CA();
+    /** @brief Construct a temperature technique instance with default ADC/AFE settings. */
+    EChem_Temp();
 
-    // Control functions
+    /**
+     * @brief Start temperature sampling by configuring AD5940 and enabling periodic measurement.
+     * @return True when sampling starts successfully.
+     */
     bool start(void);
+    /**
+     * @brief Stop temperature sampling and power down measurement resources.
+     * @return True when stop path completes.
+     */
     bool stop(void);
+    /**
+     * @brief Parse and apply temperature parameter payload from host.
+     * @param data Packed temperature parameter bytes.
+     * @param len Number of bytes in @p data.
+     * @return True when parameters are valid and applied.
+     */
     bool loadParameters(uint8_t* data, uint16_t len);
 
-    // Interrupt service routine
+    /** @brief Handle temperature ISR path, read FIFO values, and queue converted output. */
     void ISR(void);
 
-    // Data processing and retrieval
+    /** @brief Print queued temperature samples for debugging. */
     void printResult(void);
+    /** @brief Compatibility hook for shared sensor interface. */
     void processData(void);
+    /**
+     * @brief Pop serialized temperature sample bytes from queue.
+     * @param num_items Maximum number of bytes to retrieve.
+     * @return Byte vector containing packed float sample values.
+     */
     std::vector<uint8_t> getData(size_t num_items) override { return SensorQueue<float>::popBytes(num_items); }
+    /** @brief Return number of queued sample bytes available for BLE TX. */
     size_t getNumBytesAvailable(void) const override { return SensorQueue<float>::size(); }
 
   private:
+    /**
+     * @brief Initialize AD5940 baseline hardware resources for temperature mode.
+     * @return 0 on success.
+     */
     int32_t initAD5940(void);
+    /**
+     * @brief Configure sequencer/FIFO runtime settings for temperature sampling.
+     * @return AD5940 status code.
+     */
     AD5940Err setupMeasurement(void);
 
-    // Sequence generation functions
+    /**
+     * @brief Generate one-time temperature initialization sequence.
+     * @return AD5940 status code.
+     */
     AD5940Err generateInitSequence(void);
+    /**
+     * @brief Generate periodic temperature measurement sequence.
+     * @return AD5940 status code.
+     */
     AD5940Err generateMeasSequence(void);
 
-    // Processing functions
+    /**
+     * @brief Convert raw temperature FIFO words to output values and enqueue.
+     * @param pData Pointer to raw FIFO words.
+     * @param num_samples Number of words in @p pData.
+     * @return True when processing succeeds.
+     */
     bool processAndStoreData(uint32_t* pData, uint32_t num_samples);
 
-    CAConfig_Type config;
+    TempConfig_Type config;
 
     uint8_t channel;
 

@@ -1,7 +1,12 @@
+/**
+ * @file echem_cv.h
+ * @brief Cyclic voltammetry (CV) sensor technique interface and configuration.
+ */
+
 #pragma once
 
 #include "drivers/ad5940_hal.h"
-#include "sensors/Sensor.h"
+#include "sensors/sensor.h"
 
 #include <queue>
 
@@ -79,35 +84,86 @@ namespace sensor {
 
   class EChem_CV : public Sensor, public SensorQueue<float> {
   public:
+    /** @brief Construct CV technique object with default AD5940 configuration. */
     EChem_CV();
 
-    // Control functions
+    /**
+     * @brief Start the CV measurement sequence.
+     * @return True when the run starts successfully.
+     */
     bool start(void);
+    /**
+     * @brief Stop the CV measurement sequence and power down peripherals.
+     * @return True when stop/shutdown completes successfully.
+     */
     bool stop(void);
+    /**
+     * @brief Load host-provided CV parameters.
+     * @param data Packed payload bytes for CV parameters.
+     * @param len Payload length in bytes.
+     * @return True when parameters are accepted and applied.
+     */
     bool loadParameters(uint8_t* data, uint16_t len);
 
-    // Interrupt service routine
+    /** @brief Handle AD5940 interrupts and move acquired samples into the queue. */
     void ISR(void);
 
-    // Data processing and retrieval
+    /** @brief Print queued CV samples for debug output. */
     void printResult(void);
+    /** @brief Reserved processing entry point for compatibility with sensor interface patterns. */
     void processData(void);
+    /**
+     * @brief Pop serialized sample bytes from the queue.
+     * @param num_items Maximum number of bytes requested.
+     * @return Byte vector containing serialized samples.
+     */
     std::vector<uint8_t> getData(size_t num_items) override { return SensorQueue<float>::popBytes(num_items); }
+    /** @brief Get currently buffered sample bytes available for TX. */
     size_t getNumBytesAvailable(void) const override { return SensorQueue<float>::size(); }
 
   private:
+    /**
+     * @brief Initialize AD5940 clocks, FIFO, sequencer, interrupts, and LFOSC calibration.
+     * @return 0 on success.
+     */
     int32_t initAD5940(void);
+    /**
+     * @brief Configure runtime measurement sequences and FIFO after parameters are loaded.
+     * @return AD5940 status code.
+     */
     AD5940Err setupMeasurement(void);
+    /** @brief Derive ramp segments and step counts from requested voltage parameters. */
     void configureRampParameters(void);
 
-    // Sequence generation functions
+    /**
+     * @brief Generate and store one-time CV initialization sequence in AD5940 SRAM.
+     * @return AD5940 status code.
+     */
     AD5940Err generateInitSequence(void);
+    /**
+     * @brief Generate and store recurring ADC acquisition sequence in AD5940 SRAM.
+     * @return AD5940 status code.
+     */
     AD5940Err generateADCSequence(void);
+    /**
+     * @brief Generate/update DAC stepping sequences for ramp progression.
+     * @return AD5940 status code.
+     */
     AD5940Err generateDACSequence(void);
 
+    /**
+     * @brief Advance CV ramp state and compute next DAC register word.
+     * @param pDACData Output pointer for packed VZERO/VBIAS DAC code.
+     * @return AD5940 status code.
+     */
     AD5940Err updateRampDACCode(uint32_t* pDACData);
 
-    // Processing functions
+    /**
+     * @brief Convert raw ADC/FIFO words to current samples and enqueue them.
+     * @param pData Raw FIFO sample data.
+     * @param num_samples Number of raw sample words.
+     * @return True when processing succeeds.
+     */
     bool processAndStoreData(uint32_t* pData, uint32_t num_samples);
 
     CVConfig_Type config;

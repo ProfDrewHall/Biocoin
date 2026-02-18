@@ -1,11 +1,16 @@
+/**
+ * @file storage.cpp
+ * @brief Flash-backed storage implementation for device settings.
+ */
+
 #include "storage/storage.h"
 
 #include "HWConfig/config.h"
 #include "util/debug_log.h"
 
 #include <Adafruit_LittleFS.h>
-#include <bluefruit.h>
 #include <InternalFileSystem.h>
+#include <bluefruit.h>
 
 namespace storage {
   constexpr size_t kMaxDeviceNameLen = BLE_GAP_DEVNAME_MAX_LEN + 1; // Include null terminator.

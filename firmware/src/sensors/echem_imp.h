@@ -1,7 +1,12 @@
+/**
+ * @file echem_imp.h
+ * @brief Impedance spectroscopy (EIS/IMP) technique interface and configuration.
+ */
+
 #pragma once
 
 #include "drivers/ad5940_hal.h"
-#include "sensors/Sensor.h"
+#include "sensors/sensor.h"
 
 #include <queue>
 
@@ -76,34 +81,84 @@ namespace sensor {
 
   class EChem_Imp : public Sensor, public SensorQueue<fImpPol_Type> {
   public:
+    /** @brief Construct an impedance (EIS) technique instance with default sweep/AFE settings. */
     EChem_Imp();
 
-    // Control functions
+    /**
+     * @brief Start impedance measurement by configuring AD5940 and enabling measurement sequence timing.
+     * @return True when run starts successfully.
+     */
     bool start(void);
+    /**
+     * @brief Stop impedance measurement and disable active sequencing.
+     * @return True when stop operation completes.
+     */
     bool stop(void);
+    /**
+     * @brief Parse and apply host-provided impedance parameter payload.
+     * @param data Packed impedance parameters (without technique selector).
+     * @param len Payload length in bytes.
+     * @return True when parameters are valid and configuration is updated.
+     */
     bool loadParameters(uint8_t* data, uint16_t len);
 
-    // Interrupt service routine
+    /** @brief Handle measurement interrupts, read FIFO content, and update sweep state. */
     void ISR(void);
 
-    // Data processing and retrieval
+    /** @brief Print queued impedance result samples for debug. */
     void printResult(void);
+    /** @brief Compatibility hook for shared sensor interface. */
     void processData(void);
+    /**
+     * @brief Pop serialized impedance samples from queue.
+     * @param num_items Maximum byte count to pop.
+     * @return Byte vector containing packed `fImpPol_Type` samples.
+     */
     std::vector<uint8_t> getData(size_t num_items) override { return SensorQueue<fImpPol_Type>::popBytes(num_items); }
+    /** @brief Return queued impedance bytes currently available for TX. */
     size_t getNumBytesAvailable(void) const override { return SensorQueue<fImpPol_Type>::size(); }
 
   private:
+    /**
+     * @brief Initialize AD5940 baseline hardware/clock/FIFO resources for impedance mode.
+     * @return 0 on success.
+     */
     int32_t initAD5940(void);
+    /**
+     * @brief Configure sequences, RTIA calibration data, and FIFO for impedance acquisition.
+     * @return AD5940 status code.
+     */
     AD5940Err setupMeasurement(void);
+    /** @brief Compute waveform/sweep parameters from active impedance settings. */
     void configureWaveformParameters(void);
+    /**
+     * @brief Calibrate high-speed RTIA path used for impedance measurement.
+     * @return AD5940 status code.
+     */
     AD5940Err AD5940_CalibrateHSRTIA(void);
+    /**
+     * @brief Update AFE registers at runtime and enforce stop conditions.
+     * @return AD5940 status code.
+     */
     AD5940Err updateRegisters(void);
 
-    // Sequence generation functions
+    /**
+     * @brief Generate one-time impedance initialization sequence.
+     * @return AD5940 status code.
+     */
     AD5940Err generateInitSequence(void);
+    /**
+     * @brief Generate recurring impedance measurement sequence.
+     * @return AD5940 status code.
+     */
     AD5940Err generateMeasSequence(void);
 
-    // Processing functions
+    /**
+     * @brief Convert raw FIFO words into impedance-polar output samples and enqueue them.
+     * @param pData Raw FIFO data pointer.
+     * @param num_samples Number of 32-bit words in @p pData.
+     * @return True when processing succeeds.
+     */
     bool processAndStoreData(uint32_t* pData, uint32_t num_samples);
 
     ImpConfig_Type config;

@@ -1,9 +1,14 @@
+/**
+ * @file battery.cpp
+ * @brief Battery module initialization and service orchestration.
+ */
+
 #include "battery/battery.h"
 
 #include "HWConfig/constants.h"
 #include "battery/battery_task.h"
-#include "util/debug_log.h"
 #include "power/power.h"
+#include "util/debug_log.h"
 
 #include <Arduino.h>
 
@@ -25,27 +30,23 @@ void battery::stop() {
 }
 
 uint8_t battery::readLevel(uint8_t numToAverage) {
-  if(numToAverage == 0) numToAverage = 1;                 // Guard against divide by 0
-  
-  // The ADC is enabled inside the analogRead() function
-  //NRF_SAADC->ENABLE = SAADC_ENABLE_ENABLE_Enabled;        // Turn on the ADC
+  if (numToAverage == 0) numToAverage = 1; // Guard against divide by 0
+
   power::reconnectInputGPIO(PIN_VDIV, power::PullConfig::Disabled); // Turn back on the pin
 
   // Configure the ADC
   analogReference(AR_INTERNAL_1_8);                        // Set the analog reference (default = 3.6V)
   analogSampleTime(SAADC_CH_CONFIG_TACQ_40us);             // Set the ADC Sample and Hold Acquisition time
-  analogOversampling(SAADC_OVERSAMPLE_OVERSAMPLE_Over16x); // Set the ADC to Oversample and perform sample averaging:
-                                                           // averages 2^OVERSAMPLE samples per reading
+  analogOversampling(SAADC_OVERSAMPLE_OVERSAMPLE_Over16x); // Set the ADC to Oversample and perform sample averaging
   analogReadResolution(14);                                // Set the resolution, can be 8, 10, 12 or 14
 
   // Get the raw ADC value and average the readings
   uint32_t total = 0;
-  for (uint8_t i = 0; i < numToAverage; i++)
-    total += analogRead(PIN_VDIV);
+  for (uint8_t i = 0; i < numToAverage; i++) total += analogRead(PIN_VDIV);
 
   // Revert the ADC to default settings
-  NRF_SAADC->ENABLE = SAADC_ENABLE_ENABLE_Disabled;         // Turn off the ADC
-  power::disconnectInputGPIO(PIN_VDIV);                     // Float the pin to save power
+  NRF_SAADC->ENABLE = SAADC_ENABLE_ENABLE_Disabled; // Turn off the ADC
+  power::disconnectInputGPIO(PIN_VDIV);             // Float the pin to save power
 
   // Calculate the battery voltage
   float avgADCReading = static_cast<float>(total) / numToAverage;    // Average the reading

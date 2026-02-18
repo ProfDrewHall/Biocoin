@@ -1,4 +1,9 @@
-#include "sensors/EChem_Imp.h"
+/**
+ * @file echem_imp.cpp
+ * @brief Impedance spectroscopy (EIS/IMP) technique implementation.
+ */
+
+#include "sensors/echem_imp.h"
 
 #include "HWConfig/constants.h"
 #include "drivers/ad5940_hal.h"
@@ -170,9 +175,7 @@ int32_t sensor::EChem_Imp::initAD5940(void) {
   return 0;
 }
 
-/**
- * @brief Initialize the amperometric test. Call this function every time before starting amperometric test.
- */
+
 AD5940Err sensor::EChem_Imp::setupMeasurement(void) {
   AD5940Err error = AD5940ERR_OK;
   SEQCfg_Type seq_cfg;

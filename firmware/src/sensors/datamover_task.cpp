@@ -1,8 +1,13 @@
+/**
+ * @file datamover_task.cpp
+ * @brief FreeRTOS data mover task that drains AFE data and queues BLE TX.
+ */
+
 #include "sensors/datamover_task.h"
 
-#include "util/debug_log.h"
 #include "drivers/ad5940_hal.h"
-#include "sensors/SensorManager.h"
+#include "sensors/sensor_manager.h"
+#include "util/debug_log.h"
 #include "util/task_sync.h"
 
 #include <Arduino.h>
@@ -31,7 +36,8 @@ void sensor::stopDataMoverTask() {
 
   dataTaskStopRequested = true;
   vTaskResume(dataTaskHandle);
-  if (!taskSync::requestStopAndWait(dataTaskHandle, kDataMoverStopTimeoutTicks)) dbgWarn("Data mover task stop timed out");
+  if (!taskSync::requestStopAndWait(dataTaskHandle, kDataMoverStopTimeoutTicks))
+    dbgWarn("Data mover task stop timed out");
 }
 
 void sensor::startDataMoverTask() {
@@ -52,10 +58,10 @@ void sensor::dataMoverTask(void* pvParameters) {
     sensor::Sensor* activeSensor = getActiveSensor();
     if (activeSensor != nullptr) {
       activeSensor->ISR();
-      #ifdef DEBUG_MODE
-        activeSensor->printResult();
-      #endif
-      queueDataForTX(activeSensor->getNumBytesAvailable());       // Get the data and queue it up for transmitting
+#ifdef DEBUG_MODE
+      activeSensor->printResult();
+#endif
+      queueDataForTX(activeSensor->getNumBytesAvailable()); // Get the data and queue it up for transmitting
     }
 
     if (dataTaskStopRequested) break;

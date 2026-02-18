@@ -1,3 +1,8 @@
+/**
+ * @file debug_log.h
+ * @brief Debug logging macros and log-level configuration.
+ */
+
 #pragma once
 
 #include <Arduino.h>

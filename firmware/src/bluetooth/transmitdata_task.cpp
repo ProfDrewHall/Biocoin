@@ -1,3 +1,8 @@
+/**
+ * @file transmitdata_task.cpp
+ * @brief BLE notify transmit worker backed by a bounded stream buffer.
+ */
+
 #include "bluetooth/bluetooth.h"
 #include "bluetooth/gatt.h"
 #include "bluetooth/transmitdata_task.h"
