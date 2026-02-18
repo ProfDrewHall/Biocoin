@@ -1,6 +1,6 @@
 # Revision History
 
-## Unreleased (since last push to `origin/main`) - 2026-02-18
+## v1.1.1 - 2026-02-18
 
 - Refactored BLE transmit pipeline:
   - Replaced misspelled `tansmitdata_task.cpp` with `transmitdata_task.cpp`.
