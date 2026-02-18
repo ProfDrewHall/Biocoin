@@ -77,7 +77,7 @@ src/
     bluetooth.{h,cpp}
     gatt.{h,cpp}
     transmitdata_task.h
-    tansmitdata_task.cpp
+    transmitdata_task.cpp
   battery/
     battery.{h,cpp}
     battery_task.{h,cpp}
@@ -117,6 +117,17 @@ For lowest-power operation, SDK-level `WInterrupts` changes are still required (
 
 ---
 
+## Documentation
+
+- `docs/README.md` - docs index and navigation
+- `docs/BLE_PROTOCOL.md` - protocol and payload reference
+- `docs/BUILD_FLASH.md` - build/flash environment notes
+- `docs/POWER.md` - low-power behavior and SDK patch requirements
+- `docs/RELEASE_CHECKLIST.md` - release prep checklist
+- `test/README.md` - targeted parser/state transition test plan and vectors
+
+---
+
 ## 📡 BLE Protocol (summary)
 
 - A **Parameters** characteristic accepts a binary payload:
@@ -125,6 +136,7 @@ For lowest-power operation, SDK-level `WInterrupts` changes are still required (
 - A **Control** characteristic accepts a command (`START` / `STOP`)
 - A **Status** characteristic reports `TestState` (`NOT_RUNNING`, `RUNNING`, `ERROR`, etc.)
 - A **Data** characteristic streams measurement results as raw bytes (floats)
+- TX transport detail: outgoing BLE data uses a bounded FreeRTOS stream buffer. If producers outrun BLE notify throughput, excess bytes are dropped and logged.
 
 > UUIDs/handles are defined in the BLE layer (see `src/bluetooth/gatt.*`). Host apps should send the correct packed struct for the selected technique.
 

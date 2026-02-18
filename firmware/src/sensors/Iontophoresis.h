@@ -1,7 +1,7 @@
 #pragma once
 
 #include "drivers/ad5940_hal.h"
-#include "sensors/sensor.h"
+#include "sensors/Sensor.h"
 
 #include <vector>
 

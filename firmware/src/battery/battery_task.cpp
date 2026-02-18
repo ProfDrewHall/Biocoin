@@ -4,7 +4,7 @@
 
 #include "battery/battery_task.h"
 
-#include "HWConfig/constants.h"
+#include "HWConfig/config.h"
 #include "battery/battery.h"
 #include "bluetooth/bluetooth.h"
 #include "util/debug_log.h"

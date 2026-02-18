@@ -1,0 +1,41 @@
+name: Firmware Sanity
+
+on:
+  push:
+    paths:
+      - 'firmware/**'
+      - '.github/workflows/firmware-sanity.yml'
+  pull_request:
+    paths:
+      - 'firmware/**'
+      - '.github/workflows/firmware-sanity.yml'
+
+jobs:
+  sanity:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firmware
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run sanity checks
+        run: bash scripts/sanity_checks.sh
+      - name: Run sensor mode smoke checks
+        run: bash scripts/smoke_sensor_modes.sh
+
+  warnings:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firmware
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install PlatformIO Core
+        run: pip install platformio
+      - name: Fail on non-vendor warnings
+        run: bash scripts/check_project_warnings.sh adafruit_feather_nrf52840

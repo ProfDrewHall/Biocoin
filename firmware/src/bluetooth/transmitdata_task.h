@@ -1,13 +1,13 @@
 #pragma once
 
 #include <cstdint>
-#include <queue>
+#include <vector>
 
 namespace bluetooth {
 
-  extern std::queue<uint8_t> TX_queue;
-
   void createTransmitTask();
+  void stopTransmitTask();
   void startTransmitTask(const std::vector<uint8_t>& data);
+  void clearTransmitBuffer();
 
 } // namespace bluetooth

@@ -1,9 +1,8 @@
 #include "sensors/SensorManager.h"
 
-#include "HWConfig/constants.h"
 #include "bluetooth/gatt.h"
 #include "bluetooth/transmitdata_task.h"
-#include "drivers/AD5940_hal.h"
+#include "drivers/ad5940_hal.h"
 #include "sensors/EChem_CA.h"
 #include "sensors/EChem_CV.h"
 #include "sensors/EChem_DPV.h"
@@ -12,24 +11,37 @@
 #include "sensors/EChem_OCP.h"
 #include "sensors/EChem_Temp.h"
 #include "sensors/datamover_task.h"
-#include "sensors/iontophoresis.h"
+#include "sensors/Iontophoresis.h"
 #include "util/debug_log.h"
+#include "util/payload_validation.h"
 
 #include <utility>
 #include <memory>
 
 namespace sensor {
-  std::unique_ptr<Sensor> pActiveSensor = nullptr;
-  SensorType activeSensorID = SensorType::None;
-  TestState testState = TestState::NOT_RUNNING;
+  static std::unique_ptr<Sensor> pActiveSensor = nullptr;
+  static SensorType activeSensorID = SensorType::None;
+  static TestState testState = TestState::NOT_RUNNING;
 
   static std::unique_ptr<Sensor> createSensor(sensor::SensorType type);
 }; // namespace sensor
 
 void sensor::init() {
-  dbgInfo("Initialzing sensor interface...");
+  dbgInfo("Initializing sensor interface...");
   createDataMoverTask(); // Create the task to handle interrupts
   updateStatus(TestState::NOT_RUNNING);
+}
+
+sensor::Sensor* sensor::getActiveSensor() {
+  return pActiveSensor.get();
+}
+
+sensor::SensorType sensor::getActiveSensorType() {
+  return activeSensorID;
+}
+
+sensor::TestState sensor::getTestState() {
+  return testState;
 }
 
 std::unique_ptr<sensor::Sensor> sensor::createSensor(sensor::SensorType type) {
@@ -58,7 +70,7 @@ std::unique_ptr<sensor::Sensor> sensor::createSensor(sensor::SensorType type) {
 }
 
 bool sensor::loadParameters(uint8_t* data, uint16_t len) {
-  if (len < 1 || data == nullptr) {
+  if (!payloadValidation::requireMinLength(data, len, 1, "sensor parameters")) {
     updateStatus(TestState::INVALID_PARAMETERS);
     return false;
   }
@@ -90,7 +102,7 @@ bool sensor::loadParameters(uint8_t* data, uint16_t len) {
 }
 
 bool sensor::controlCommand(uint8_t* data, uint16_t len) {
-  if (len < 1 || data == nullptr || pActiveSensor == nullptr) {
+  if (!payloadValidation::requireMinLength(data, len, 1, "sensor control") || pActiveSensor == nullptr) {
     updateStatus(TestState::INVALID_PARAMETERS);
     return false;
   }
@@ -154,5 +166,5 @@ void sensor::queueDataForTX(size_t minBytesRequired) {
 
 void sensor::updateStatus(sensor::TestState state) {
   testState = state;
-  bluetooth::chrStatus.write8(static_cast<uint8_t>(sensor::testState));
+  bluetooth::chrStatus.write8(static_cast<uint8_t>(testState));
 }

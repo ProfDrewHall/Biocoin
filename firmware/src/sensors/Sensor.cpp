@@ -1,8 +1,5 @@
 #include "sensors/Sensor.h"
-
-#include "HWConfig/constants.h"
 #include "drivers/ad5940_hal.h"
-#include "util/debug_log.h"
 
 
 /* Calculate current in uA */

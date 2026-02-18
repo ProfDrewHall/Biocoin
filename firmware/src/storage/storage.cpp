@@ -1,6 +1,6 @@
 #include "storage/storage.h"
 
-#include "HWConfig/constants.h"
+#include "HWConfig/config.h"
 #include "util/debug_log.h"
 
 #include <Adafruit_LittleFS.h>

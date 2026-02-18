@@ -1,6 +1,6 @@
 #pragma once
 
-#include "sensors/sensor.h"
+#include "sensors/Sensor.h"
 #include <memory>
 
 namespace sensor {
@@ -25,11 +25,10 @@ namespace sensor {
 
   enum class TestState : uint8_t { NOT_RUNNING = 0x00, INVALID_PARAMETERS, RUNNING, ERROR, CURRENT_LIMIT_EXCEEDED };
 
-  extern std::unique_ptr<Sensor> pActiveSensor;
-  extern SensorType activeSensorID;
-  //extern TestState testState;
-
   void init();
+  Sensor* getActiveSensor();
+  SensorType getActiveSensorType();
+  TestState getTestState();
   bool loadParameters(uint8_t* data, uint16_t len);
   bool controlCommand(uint8_t* data, uint16_t len);
   void interruptHandler();

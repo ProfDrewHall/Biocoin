@@ -8,7 +8,7 @@
 #include <nrf_sdm.h>
 #include <nrf_soc.h>
 
-constexpr uint32_t kStartupDelay = 50; // Time in ms to let peripherials come online
+constexpr uint32_t kStartupDelay = 50; // Time in ms to let peripherals come online
 
 void power::init() {
   dbgInfo("Initializing pins...");

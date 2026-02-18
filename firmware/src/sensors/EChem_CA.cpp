@@ -3,7 +3,6 @@
 #include "HWConfig/constants.h"
 #include "drivers/ad5940_hal.h"
 #include "power/power.h"
-#include "sensors/Sensor.h"
 #include "util/debug_log.h"
 
 

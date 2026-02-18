@@ -1,7 +1,7 @@
 #include "bluetooth.h"
 
 #include <bluefruit.h>
-#include "HWConfig/constants.h"
+#include "HWConfig/config.h"
 #include "battery/battery.h"
 #include "bluetooth/gatt.h"
 #include "bluetooth/transmitdata_task.h"
@@ -95,7 +95,7 @@ void bluetooth::onConnect(uint16_t conn_handle) {
   conn->getPeerName(central_name, sizeof(central_name));
   dbgInfo(String("Connected to ") + central_name);
 
-  // Get the maximum trasnmit unit (MTU) and try to negotiate a larger one
+  // Get the maximum transmit unit (MTU) and try to negotiate a larger one
   uint16_t MTU = conn->getMtu();
   conn->requestPHY(BLE_GAP_PHY_AUTO); //*BLE_GAP_PHY_2MBPS
   conn->requestDataLengthUpdate();

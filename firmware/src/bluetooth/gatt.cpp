@@ -3,6 +3,7 @@
 #include "bluetooth/bluetooth.h"
 #include "bluetooth/transmitdata_task.h"
 #include "util/debug_log.h"
+#include "util/payload_validation.h"
 #include "sensors/SensorManager.h"
 #include "storage/storage.h"
 
@@ -58,28 +59,30 @@ void bluetooth::initGatt() {
   chrSensorData.begin();
 }
 
-template <typename T>
-void bluetooth::clearQueue(std::queue<T>& q) {
-  while (!q.empty()) {
-    q.pop();
-  }
-}
-
 void bluetooth::onNameWrite(uint16_t, BLECharacteristic*, uint8_t* data, uint16_t len) {
-  String name = String(reinterpret_cast<const char*>(data)).substring(0, len);
+  constexpr uint16_t kMaxNameLen = BLE_GAP_DEVNAME_MAX_LEN - 1;
+  if (!payloadValidation::requireLengthInRange(data, len, 1, kMaxNameLen, "device name")) return;
 
-  // Limit length to max allowed (with null terminator)
-  if (name.length() > BLE_GAP_DEVNAME_MAX_LEN - 1) name = name.substring(0, BLE_GAP_DEVNAME_MAX_LEN - 1);
+  String name;
+  name.reserve(len);
+  for (uint16_t i = 0; i < len; ++i) {
+    name += static_cast<char>(data[i]);
+  }
 
   dbgInfo("Updating device name = " + name);
   storage::writeDeviceName(name);
 }
 
 void bluetooth::onSensorControl(uint16_t conn_hdl, BLECharacteristic* chr, uint8_t* data, uint16_t len) {
+  if (!payloadValidation::requireLengthInRange(data, len, 1, 1, "EChem control")) return;
+
   dbgInfo("Received EChem Control Command");
-  if (sensor::controlCommand(data, len)) clearQueue(TX_queue);
+  if (sensor::controlCommand(data, len)) clearTransmitBuffer();
 }
 
 void bluetooth::onSensorParameters(uint16_t conn_hdl, BLECharacteristic* chr, uint8_t* data, uint16_t len) {
+  constexpr uint16_t kMaxParamsLen = kMTURequest - kATTHeaderLen;
+  if (!payloadValidation::requireLengthInRange(data, len, 1, kMaxParamsLen, "EChem parameters")) return;
+
   sensor::loadParameters(data, len);
 }

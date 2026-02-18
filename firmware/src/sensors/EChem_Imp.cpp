@@ -3,7 +3,6 @@
 #include "HWConfig/constants.h"
 #include "drivers/ad5940_hal.h"
 #include "power/power.h"
-#include "sensors/Sensor.h"
 #include "util/debug_log.h"
 
 
@@ -528,7 +527,7 @@ void sensor::EChem_Imp::ISR(void) {
 AD5940Err sensor::EChem_Imp::updateRegisters(void) {
   if (config.NumOfData > 0) {
     config.FifoDataCount += getNumBytesAvailable() / 4;
-    if (config.FifoDataCount >= config.NumOfData) {
+    if (config.FifoDataCount >= static_cast<uint32_t>(config.NumOfData)) {
       AD5940_WUPTCtrl(bFALSE);
       return AD5940ERR_OK;
     }

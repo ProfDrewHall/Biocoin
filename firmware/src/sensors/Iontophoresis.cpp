@@ -1,14 +1,12 @@
-#include "sensors/iontophoresis.h"
+#include "sensors/Iontophoresis.h"
 
 #include "HWConfig/constants.h"
 #include "drivers/ad5940_hal.h"
 #include "power/power.h"
-#include "sensors/Sensor.h"
 #include "sensors/SensorManager.h"
 #include "util/debug_log.h"
+#include "util/task_sync.h"
 
-
-namespace sensor {} // namespace sensor
 
 // Structure for how parameters are passed down from the host
 struct IONTOPHORESIS_PARAMETERS {
@@ -16,6 +14,10 @@ struct IONTOPHORESIS_PARAMETERS {
   float stimCurrent;      // [uA]
   float maxCurrent;       // [uA]
 } __attribute__((packed));
+
+namespace sensor {
+  constexpr TickType_t kStimulationTaskStopTimeoutTicks = pdMS_TO_TICKS(1000);
+}
 
 sensor::Iontophoresis::Iontophoresis() {
   // Initialize structures to known values
@@ -134,10 +136,11 @@ void sensor::Iontophoresis::startStimulationMonitoringTask() {
 }
 
 void sensor::Iontophoresis::stopStimulationMonitoringTask() {
-  if (stimulationTaskHandle != nullptr) {
-    vTaskDelete(stimulationTaskHandle);
-    stimulationTaskHandle = nullptr;
-  }
+  if (stimulationTaskHandle == nullptr) return;
+  if (xTaskGetCurrentTaskHandle() == stimulationTaskHandle) return;
+
+  if (!taskSync::requestStopAndWait(stimulationTaskHandle, kStimulationTaskStopTimeoutTicks))
+    dbgWarn("Stimulation monitor task stop timed out");
 }
 
 void sensor::Iontophoresis::stimulationTask(void* pvParameters) {
@@ -150,6 +153,8 @@ void sensor::Iontophoresis::stimulationTask(void* pvParameters) {
   auto& config = self->config;
 
   while (true) {
+    if (ulTaskNotifyTake(pdTRUE, 0) > 0) break;
+
     // The ADC is enabled inside the analogRead() function
     // NRF_SAADC->ENABLE = SAADC_ENABLE_ENABLE_Enabled;        // Turn on the ADC
     power::reconnectInputGPIO(PIN_CURRENT_SENSE_OUT, power::PullConfig::Disabled); // Turn back on the pin
@@ -180,12 +185,14 @@ void sensor::Iontophoresis::stimulationTask(void* pvParameters) {
     // check if current exceeds maximum allowed value for safety reasons
     if (current > config.maxCurrent) {
       self->stop();
-      vTaskDelete(nullptr); // delete the task
-      self->stimulationTaskHandle = nullptr;
       updateStatus(TestState::CURRENT_LIMIT_EXCEEDED);
       dbgError("Current threshold exceeded! Shutting down iontophoresis\n");
+      break;
     }
 
-    vTaskDelay(pdMS_TO_TICKS(static_cast<uint32_t>(config.samplingInterval * 1000.0f)));
+    if (ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(static_cast<uint32_t>(config.samplingInterval * 1000.0f))) > 0) break;
   }
+
+  self->stimulationTaskHandle = nullptr;
+  vTaskDelete(nullptr);
 }
