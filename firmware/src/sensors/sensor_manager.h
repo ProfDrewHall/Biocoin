@@ -6,7 +6,6 @@
 #pragma once
 
 #include "sensors/sensor.h"
-#include <memory>
 
 namespace sensor {
 

@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include <Arduino.h>
-
 namespace battery {
   /**
    * @brief Start the periodic battery monitor task.

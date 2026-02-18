@@ -2,6 +2,7 @@
 
 - `BLE_PROTOCOL.md`: BLE characteristics, command framing, and payload notes.
 - `BUILD_FLASH.md`: Build/flash notes and environment assumptions.
+- `CONTRIBUTING.md`: Coding, naming, and documentation conventions for firmware changes.
 - `POWER.md`: Low-power behavior and required SDK `WInterrupts` patch context.
 - `RELEASE_CHECKLIST.md`: Pre-release checklist for firmware updates.
 
