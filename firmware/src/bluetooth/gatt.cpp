@@ -7,7 +7,7 @@
 #include "HWConfig/constants.h"
 #include "bluetooth/bluetooth.h"
 #include "bluetooth/transmitdata_task.h"
-#include "sensors/sensor_manager.h"
+#include "sensors/core/sensor_manager.h"
 #include "storage/storage.h"
 #include "util/debug_log.h"
 #include "util/payload_validation.h"
@@ -82,7 +82,13 @@ void bluetooth::onSensorControl(uint16_t conn_hdl, BLECharacteristic* chr, uint8
   if (!payloadValidation::requireLengthInRange(data, len, 1, 1, "EChem control")) return;
 
   dbgInfo("Received EChem Control Command");
-  if (sensor::controlCommand(data, len)) clearTransmitBuffer();
+  const sensor::SensorCmd cmd = static_cast<sensor::SensorCmd>(data[0]);
+  if (cmd == sensor::SensorCmd::START) {
+    // Drop stale bytes from a prior run before starting a new one.
+    clearTransmitBuffer();
+  }
+
+  sensor::controlCommand(data, len);
 }
 
 void bluetooth::onSensorParameters(uint16_t conn_hdl, BLECharacteristic* chr, uint8_t* data, uint16_t len) {

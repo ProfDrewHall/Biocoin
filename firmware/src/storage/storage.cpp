@@ -43,7 +43,7 @@ void storage::writeDeviceName(const String& name) {
     dbgInfo("Restarting to apply changes...");
     NVIC_SystemReset();
   } else {
-    dbgError("Failed to write name — file open error");
+    dbgError("Failed to write name - file open error");
   }
 }
 

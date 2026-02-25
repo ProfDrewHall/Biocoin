@@ -1,0 +1,210 @@
+/**
+ * @file echem_swv.h
+ * @brief Square-wave voltammetry (SWV) technique interface and configuration.
+ */
+
+#pragma once
+
+#include "drivers/ad5940_hal.h"
+#include "sensors/core/sensor.h"
+
+#include <Arduino.h>
+
+
+namespace sensor {
+  constexpr uint8_t kSWVMaxChannel = 3u;
+  constexpr uint32_t kSWVMinFifoThreshold = 1u;
+  constexpr uint32_t kSWVMaxFifoThreshold = 1023u;
+  constexpr uint32_t kSWVWakeSleepTicks = 4u;
+  constexpr uint32_t kSWVWakeAdjustTicks = 6u;
+  constexpr uint32_t kSWVSeqRefSettleUs = 250u;
+  constexpr uint32_t kSWVSeqPostAdcDelayClks = 20u;
+
+  struct SWVParameterPayload {
+    float processingInterval;
+    float maxCurrent;
+    float Estart;
+    float Estop;
+    float EAmplitude;
+    float Estep;
+    float pulsePeriod;
+    uint8_t channel;
+  } __attribute__((packed));
+  static_assert(sizeof(SWVParameterPayload) == 29, "SWVParameterPayload must remain packed at 29 bytes");
+
+  struct SWVConfig {
+    /* Common configurations for all kinds of Application. */
+    BoolFlag hasValidParameters; /* Indicates that the parameters have been updated and sequence needs to be regenerated */
+    uint32_t SeqStartAddr; /* Initialaztion sequence start address in SRAM of AD5940  */
+    uint32_t MaxSeqLen;    /* Limit the maximum sequence.   */
+
+    /* Application related parameters */
+    float SysClkFreq;    /* The real frequency of system clock */
+    float AdcClkFreq;    /* The real frequency of ADC clock */
+    uint32_t FifoThresh; /* FIFO threshold. Should be N*4 */
+    float RcalVal;       /* RCVl value in Ohm */
+    uint32_t PwrMod;     /* Control Chip power mode(LP/HP) */
+
+    /* Receive path configuration */
+    uint32_t AFEBW;      // select from AFEBW_250KHZ, AFEBW_100KHZ, AFEBW_50KHZ
+    uint32_t ADCPgaGain; /* PGA Gain select from GNPGA_1, GNPGA_1_5, GNPGA_2, GNPGA_4, GNPGA_9 !!! We must ensure signal
+                            is in range of +-1.5V which is limited by ADC input stage */
+    uint8_t ADCSinc3Osr; /* SINC3 OSR selection. ADCSINC3OSR_2, ADCSINC3OSR_4 */
+    uint8_t ADCSinc2Osr; /* SINC2 OSR selection. ADCSINC2OSR_22...ADCSINC2OSR_1333 */
+    uint32_t DataFifoSrc;      /* DataFIFO source. DATATYPE_ADCRAW, DATATYPE_SINC3 or DATATYPE_SINC2*/
+    uint32_t LptiaRtiaSel;     /* Use internal RTIA, select from RTIA_INT_200, RTIA_INT_1K, RTIA_INT_5K, RTIA_INT_10K,
+                                  RTIA_INT_20K, RTIA_INT_40K, RTIA_INT_80K, RTIA_INT_160K */
+    uint32_t LpTiaRf;          /* Rfilter select */
+    uint32_t LpTiaRl;          /* SE0 Rload select */
+    fImpPol_Type RtiaCalValue; /* Calibrated Rtia value */
+    BoolFlag ExtRtia;          /* Use internal or external Rtia */
+
+    float Estart;           //[mv]
+    float Estop;            //[mv]
+    float RampStartVolt;    /**< The start voltage of ramp signal in mV */
+    float RampPeakVolt;     /**< The maximum or minimum voltage of ramp in mV */
+    float VzeroStart;       /**< The start voltage of Vzero in mV. Set it to 2400mV by default */
+    float VzeroPeak;        /**< The peak voltage of Vzero in mV. Set it to 200mV by default */
+    uint32_t StepNumber;    /**< Total number of steps. Limited to 4095. */
+    float PulsePeriodMs;    /**< Square-wave period [ms]. */
+    float PulseWidthMs;     /**< Square-wave pulse width [ms]. */
+    float EAmplitude;       /**< Square-wave amplitude [mV]. */
+    float RampAmplitudeMv;  /**< Derived ramp amplitude used by sequencer [mV]. */
+    float Estep;            /**< Ramp increase in mV */
+    float SampleDelayMs;    /**< Time delay between DAC update and ADC start [ms]. */
+    
+    /* LPDAC Config */
+    float ADCRefVolt; /* Vref value */
+    float ExtRtiaVal; /* External Rtia value if using one */
+
+    SEQInfo_Type InitSeqInfo;
+    SEQInfo_Type ADCSeqInfo;
+    BoolFlag bFirstDACSeq;   /**< Init DAC sequence */
+    SEQInfo_Type DACSeqInfo; /**< The first DAC update sequence info */
+    uint32_t CurrStepPos;    /**< Current position */
+    float DACCodePerStep;    /**< DAC codes in square waveform */
+    float DACCodePerRamp;    /**< DAC codes needed to ramp increment */
+    float CurrRampCode;      /**<  */
+    uint32_t CurrVzeroCode;
+    BoolFlag bSqrWaveHiLevel; /**< Flag to indicate square wave high level */
+  };
+
+  enum class SWVRampState : uint8_t {
+    Start = 0, // Estart -> Evertex1
+    State1,    // Evertex1 -> Evertex2
+    State2,    // Evertex2 -> Estart
+    Stop       // Ramp is complete
+  };
+
+  class EChem_SWV : public Sensor, public SensorQueue<float> {
+  public:
+    /** @brief Construct a Square Wave Voltammetry (SWV) technique instance. */
+    EChem_SWV();
+
+    /**
+     * @brief Start SWV acquisition, including AFE setup and waveform/sequence initialization.
+     * @return True if measurement starts successfully.
+     */
+    bool start(void);
+    /**
+     * @brief Stop SWV acquisition and shut down active hardware resources.
+     * @return True when stop path completes.
+     */
+    bool stop(void);
+    /**
+     * @brief Parse and apply host-provided SWV parameters.
+     * @param data Packed SWV parameters (without technique selector).
+     * @param len Payload length in bytes.
+     * @return True when payload is valid and configuration is accepted.
+     */
+    bool loadParameters(const uint8_t* data, uint16_t len);
+
+    /** @brief Handle SWV interrupt events and move sampled data into queue. */
+    void ISR(void);
+
+    /** @brief Print queued SWV samples to serial output for debugging. */
+    void printResult(void);
+    /**
+     * @brief Pop serialized SWV sample bytes from queue.
+     * @param num_items Maximum number of bytes to pop.
+     * @return Byte vector containing packed float samples.
+     */
+    std::vector<uint8_t> getData(size_t num_items) override { return SensorQueue<float>::popBytes(num_items); }
+    /** @brief Return queued SWV bytes available for BLE transmission. */
+    size_t getNumBytesAvailable(void) const override { return SensorQueue<float>::size(); }
+
+  private:
+    /** @brief Initialize SWV configuration defaults. */
+    void initDefaults(void);
+
+    /**
+     * @brief Initialize AD5940 hardware blocks for SWV operation.
+     * @return 0 on success.
+     */
+    int32_t initAD5940(void);
+    /**
+     * @brief Configure SWV runtime resources after parameters are loaded.
+     * @return AD5940 status code.
+     */
+    AD5940Err setupMeasurement(void);
+    /**
+     * @brief Configure low-power loop analog topology used for SWV.
+     * @return AD5940 status code.
+     */
+    AD5940Err configureLPLoop(void);
+    /** @brief Compute DAC/timing waveform parameters from SWV settings. */
+    void configureWaveformParameters(void);
+
+    /**
+     * @brief Generate one-time SWV initialization sequence.
+     * @return AD5940 status code.
+     */
+    AD5940Err generateInitSequence(void);
+    /**
+     * @brief Generate SWV ADC sampling sequence.
+     * @return AD5940 status code.
+     */
+    AD5940Err generateADCSequence(void);
+    /**
+     * @brief Generate/update SWV DAC stepping sequence.
+     * @return AD5940 status code.
+     */
+    AD5940Err generateDACSequence(void);
+
+    /**
+     * @brief Advance SWV ramp state and compute next DAC word.
+     * @param pDACData Output pointer for packed DAC register value.
+     * @return AD5940 status code.
+     */
+    AD5940Err updateRampDACCode(uint32_t* pDACData);
+
+    /**
+     * @brief Convert raw SWV FIFO words into current samples and enqueue them.
+     * @param pData Pointer to raw FIFO words.
+     * @param num_samples Number of words in @p pData.
+     * @return True when processing succeeds.
+     */
+    bool processAndStoreData(uint32_t* pData, uint32_t num_samples);
+    bool validateParameters(const SWVParameterPayload& params, String* reason) const;
+    bool buildWakeupTimerConfig(WUPTCfg_Type& cfg, String* reason) const;
+    void cleanupStartFailure(const String& reason) const;
+
+    SWVConfig config;
+    uint8_t channel;
+
+    SWVRampState rampState;
+    float LFOSCFreq;
+
+    const static uint32_t SEQ_BUFF_SIZE = 128;
+    uint32_t seq_buffer[SEQ_BUFF_SIZE];
+
+    // Stateful DAC-sequence generation context (previously function-local static state).
+    BoolFlag seqCmdForSeq0 = bTRUE;
+    uint32_t dacSeqBlk0Addr = 0;
+    uint32_t dacSeqBlk1Addr = 0;
+    uint32_t stepsRemaining = 0;
+    uint32_t stepsPerBlock = 0;
+    uint32_t dacSeqCurrBlk = 0;
+  };
+} // namespace sensor
+

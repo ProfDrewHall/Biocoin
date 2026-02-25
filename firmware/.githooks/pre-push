@@ -1,0 +1,42 @@
+#!/usr/bin/env sh
+set -eu
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+echo "pre-push: building debug and release firmware..."
+
+if command -v pio >/dev/null 2>&1; then
+  PIO_CMD="pio"
+elif command -v platformio >/dev/null 2>&1; then
+  PIO_CMD="platformio"
+elif [ -n "${USERPROFILE:-}" ] && [ -x "$USERPROFILE/.platformio/penv/Scripts/platformio.exe" ]; then
+  PIO_CMD="$USERPROFILE/.platformio/penv/Scripts/platformio.exe"
+else
+  echo "pre-push: PlatformIO CLI not found (pio/platformio)." >&2
+  echo "pre-push: Install PlatformIO CLI or add it to PATH." >&2
+  exit 1
+fi
+
+"$PIO_CMD" run -e debug
+"$PIO_CMD" run -e release
+
+copy_artifacts() {
+  ENV_NAME="$1"
+  SRC_DIR=".pio/build/$ENV_NAME"
+  DST_DIR="build/$ENV_NAME"
+
+  mkdir -p "$DST_DIR"
+
+  for artifact in firmware.elf firmware.hex firmware.zip; do
+    if [ -f "$SRC_DIR/$artifact" ]; then
+      cp -f "$SRC_DIR/$artifact" "$DST_DIR/$artifact"
+      echo "pre-push: copied $SRC_DIR/$artifact -> $DST_DIR/$artifact"
+    fi
+  done
+}
+
+copy_artifacts "debug"
+copy_artifacts "release"
+
+echo "pre-push: build and artifact sync complete."

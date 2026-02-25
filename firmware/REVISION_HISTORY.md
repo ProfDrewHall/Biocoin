@@ -1,5 +1,23 @@
 # Revision History
 
+## v1.1.2 - 2026-02-25
+
+- Technique refactor for reuse and clarity:
+  - Added shared setup pipeline helpers in `src/sensors/techniques/setup_measurement_helpers.h`.
+  - Added shared wakeup-tick math helpers in `src/sensors/techniques/technique_lifecycle_helpers.h`.
+  - Added shared runtime interrupt/FIFO helpers in `src/sensors/techniques/technique_runtime_helpers.h`.
+  - Added shared technique payload parse/log helpers in `src/sensors/techniques/parameter_io_helpers.h`.
+- Sensor-runtime reliability fixes:
+  - Restored post-RTIA-calibration re-arm flow (FIFO/interrupt/sequencer generator) in technique setup paths to avoid no-data runs.
+  - Added a CA stop-path best-effort final FIFO drain to reduce dropped tail samples.
+  - Updated data mover wake path to ISR-safe FreeRTOS APIs and synchronized stop signaling with an atomic flag.
+- Validation and API cleanup:
+  - Consolidated exact-struct payload parsing through `payload_validation` to remove duplicate parse logic.
+  - Removed unused `processData()` declarations from technique headers since it is not part of the `Sensor` base interface.
+- Documentation/test note updates:
+  - Added unit-test hardware hookup note (10k resistor RE0-WE0, CE0 shorted to RE0) to test docs.
+  - Added tracked pre-push hook at `.githooks/pre-push` to build `debug` and `release` and copy artifacts into `build/<env>/`.
+
 ## v1.1.1 - 2026-02-18
 
 - Refactored BLE transmit pipeline:

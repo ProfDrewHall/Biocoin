@@ -51,5 +51,6 @@ namespace power {
   /**
    * @brief Disable powered peripherals and return pins to low-power idle state.
    */
-  void powerOffPeripherials();
+  void powerOffPeripherals();
 } // namespace power
+

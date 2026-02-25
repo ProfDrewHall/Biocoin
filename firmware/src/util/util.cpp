@@ -141,7 +141,7 @@ void dbgPrintInterrupts() {
 
     if (enabled == 0 && pending == 0) continue;  // skip empty groups
 
-    dbgInfo("  Group " + String(i * 32) + "–" + String((i + 1) * 32 - 1));
+    dbgInfo("  Group " + String(i * 32) + "-" + String((i + 1) * 32 - 1));
 
     for (int bit = 0; bit < 32; ++bit) {
       int irq = i * 32 + bit;

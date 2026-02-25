@@ -3,15 +3,21 @@
 Firmware for the BioCoin wearable electrochemical platform.
 This code runs on an nRF52840-based board and controls an Analog Devices AD5940 for multi-modal electrochemical sensing. It exposes a BLE interface for configuring techniques, starting/stopping tests, and streaming results to a host (Python app, mobile, etc.).
 
-Current release: **v1.1.0**
+Current release: **v1.1.2**
 
 > Techniques supported: **CA**, **CV**, **DPV**, **SWV**, **Impedance (EIS)**, **OCP**, **TEMP**, and **Iontophoresis**.
 
+## v1.1.2 Highlights
+
+- Technique refactor focused on shared setup/runtime helpers for readability and reuse.
+- Runtime reliability fixes for FIFO/interrupt handling after calibration and during CA stop.
+- Data-mover interrupt wake path updated to ISR-safe FreeRTOS APIs.
+
 ---
 
-## 🚀 Features
+## Features
 
-- Modular sensor techniques (`sensors/*`) with a common `Sensor` base class
+- Modular sensor stack (`sensors/core` + `sensors/techniques`) with a common `Sensor` base class
 - AD5940 HAL integration (clock/FIFO/LPDAC/LPAMP/DFT/sequencer, RTIA calibration) - based on ADI code
 - Low-power operation with wakeup timer & sleep
 - BLE data streaming and status updates
@@ -20,7 +26,7 @@ Current release: **v1.1.0**
 
 ---
 
-## 📦 Getting Started
+## Getting Started
 
 ### Prerequisites
 - [PlatformIO](https://platformio.org/) (VS Code extension or CLI)
@@ -34,6 +40,18 @@ From VS Code (PlatformIO) or CLI:
 pio run
 ```
 
+Optional pre-push hook (builds `debug` + `release` and copies artifacts to `build/<env>/`):
+```bash
+git config core.hooksPath .githooks
+```
+
+On Linux/macOS:
+```bash
+chmod +x .githooks/pre-push
+```
+
+On Windows (PowerShell), no `chmod` step is required.
+
 ### Flash
 USB (default PlatformIO upload target):
 ```bash
@@ -42,15 +60,15 @@ pio run -t upload
 
 DFU (example with `nrfutil`, adjust paths/softdevice/bootloader as needed):
 ```bash
-# Example only — adapt to your bootloader/DFU flow
+# Example only - adapt to your bootloader/DFU flow
 nrfutil dfu usb-serial -pkg firmware_dfu.zip -p <COM_PORT> -b 115200
 ```
 
 ---
 
-## 📁 Repository Structure (high level)
+## Repository Structure (high level)
 
-``` 
+```
 src/
   main.cpp
   HWConfig/
@@ -62,17 +80,20 @@ src/
     variant.h
     variant.cpp
   sensors/
-    echem_ca.{h,cpp}
-    echem_cv.{h,cpp}
-    echem_dpv.{h,cpp}
-    echem_swv.{h,cpp}
-    echem_imp.{h,cpp}
-    echem_ocp.{h,cpp}
-    echem_temp.{h,cpp}
-    iontophoresis.{h,cpp}
-    sensor.{h,cpp}
-    sensor_manager.{h,cpp}
-    datamover_task.{h,cpp}
+    core/
+      sensor.{h,cpp}
+      sensor_manager.{h,cpp}
+      datamover_task.{h,cpp}
+    techniques/
+      sequence_constants.h
+      ca/echem_ca.{h,cpp}
+      cv/echem_cv.{h,cpp}
+      dpv/echem_dpv.{h,cpp}
+      swv/echem_swv.{h,cpp}
+      imp/echem_imp.{h,cpp}
+      ocp/echem_ocp.{h,cpp}
+      temp/echem_temp.{h,cpp}
+      iontophoresis/iontophoresis.{h,cpp}
   bluetooth/
     bluetooth.{h,cpp}
     gatt.{h,cpp}
@@ -97,7 +118,7 @@ src/
 
 ---
 
-## 🧠 Architecture
+## Architecture
 
 All techniques inherit from `sensor::Sensor` and (for streaming) use `SensorQueue<T>` to push typed samples. `SensorManager` owns the active technique and mediates:
 
@@ -128,7 +149,7 @@ For lowest-power operation, SDK-level `WInterrupts` changes are still required (
 
 ---
 
-## 📡 BLE Protocol (summary)
+## BLE Protocol (summary)
 
 - A **Parameters** characteristic accepts a binary payload:
   - Byte `0`: `sensor::SensorType` (technique selector)
@@ -142,7 +163,7 @@ For lowest-power operation, SDK-level `WInterrupts` changes are still required (
 
 ---
 
-## 🧾 Parameter Payloads (packed)
+## Parameter Payloads (packed)
 
 Below are the **packed** C layouts (host must match layout, types, and units). Each write to the Parameters characteristic must begin with the technique selector byte (`sensor::SensorType`) followed by the corresponding struct bytes.
 
@@ -240,11 +261,11 @@ struct IONTOPHORESIS_PARAMETERS {
 } __attribute__((packed));
 ```
 
-> ⚠️ **Channels:** `channel` maps to board-level MUX/AD5940 inputs (e.g., `ADCMUXP_*`). Keep host-side enums in sync with the firmware build for your hardware variant.
+> **Channels:** `channel` maps to board-level MUX/AD5940 inputs (e.g., `ADCMUXP_*`). Keep host-side enums in sync with the firmware build for your hardware variant.
 
 ---
 
-## 🧪 Running a Technique (host flow)
+## Running a Technique (host flow)
 
 1. **Select technique**: Write `SensorType` + packed struct to the **Parameters** characteristic.
 2. **Start**: Write `START` to **Control**.
@@ -254,7 +275,7 @@ struct IONTOPHORESIS_PARAMETERS {
 
 ---
 
-## ⚙️ Implementation Notes
+## Implementation Notes
 
 - AD5940 reference voltage should match your measured value (see configs in each technique).
 - RTIA selection/auto-cal: Some techniques call `AD5940_CalibrateRTIA` unless external RTIA is forced.
@@ -266,12 +287,12 @@ struct IONTOPHORESIS_PARAMETERS {
 
 ---
 
-## 🧰 Troubleshooting
+## Troubleshooting
 
 - **No data**: Ensure `processingInterval >= samplingInterval` (where applicable).
 - **Invalid parameters**: Firmware replies via **Status** (`INVALID_PARAMETERS`) if struct size or values are off.
 - **Out of range currents**: Pick appropriate `maxCurrent` so the code selects a safe RTIA/gain.
-- **MTU**: For larger throughput, request higher ATT MTU on the central (typical 185–247+ depending on OS).
+- **MTU**: For larger throughput, request higher ATT MTU on the central (typical 185-247+ depending on OS).
 
 ---
 
@@ -290,13 +311,13 @@ Long term:
 
 ---
 
-## 📜 License
+## License
 
 MIT
 
 ---
 
-## 👤 Authors
+## Authors
 
 **Drew A. Hall**
 University of California, San Diego
@@ -314,3 +335,4 @@ Contact: thack@ucsd.edu
 
 ### Acknowledgments
 Thanks to the BioEE group at UC San Diego and collaborators for contributions and testing.
+

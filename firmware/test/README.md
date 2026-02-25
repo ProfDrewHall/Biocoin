@@ -3,6 +3,11 @@
 This repository currently uses hardware-in-loop validation.  
 Use this plan to cover parser/state-transition regressions with focused host-driven tests.
 
+## Hardware Setup (EChem Loopback)
+
+- For EChem unit-test runs, connect a `10 kOhm` resistor between `RE0` and `WE0`.
+- Short `CE0` to `RE0`.
+
 ## Parser Tests
 
 - Invalid payload length for each technique parameter struct.

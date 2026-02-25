@@ -9,12 +9,10 @@
 #include "battery/battery.h"
 #include "bluetooth/gatt.h"
 #include "bluetooth/transmitdata_task.h"
-#include "sensors/echem_ca.h"
 #include "storage/storage.h"
 #include "util/debug_log.h"
 
 #include <bluefruit.h>
-#include <queue>
 
 constexpr size_t kSlaveLatency =
     (bluetooth::kConnectionIntervalEff / bluetooth::kConnectionInterval - 1); // Number of connection intervals to skip

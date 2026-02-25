@@ -8,7 +8,7 @@
 
 #include <cstdint>
 
-#define BIOCOIN_FW_VERSION "1.1.1" // Keep in sync with release tags/app compatibility.
+#define BIOCOIN_FW_VERSION "1.1.2" // Keep in sync with release tags/app compatibility.
 
 constexpr char kFirmwareVersion[] = BIOCOIN_FW_VERSION;
 constexpr char kWelcomeMessage[] = "Biocoin v" BIOCOIN_FW_VERSION;

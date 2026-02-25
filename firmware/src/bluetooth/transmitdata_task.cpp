@@ -91,17 +91,26 @@ void bluetooth::transmitTask(void* pvParameters) {
       TickType_t start = xTaskGetTickCount();
       const TickType_t timeout = pdMS_TO_TICKS(500);
 
-      while (notifyLen > 0 && !chrSensorData.notify(txChunk, notifyLen)) {
+      bool notifyOk = false;
+      while (notifyLen > 0 && !TXTaskStopRequested) {
+        if (chrSensorData.notify(txChunk, notifyLen)) {
+          notifyOk = true;
+          break;
+        }
         if ((xTaskGetTickCount() - start) > timeout) {
           dbgWarn("Notify retry timed out.");
           break;
         }
-        dbgError("Notify failed — retrying...");
+        dbgWarn("Notify failed - retrying...");
         vTaskDelay(pdMS_TO_TICKS(10));
       }
 
-      dbgInfo("Sent " + String(notifyLen) + " Bytes");
-      vTaskDelay(pdMS_TO_TICKS(50));
+      if (notifyOk) {
+        dbgInfo("Sent " + String(notifyLen) + " bytes");
+        vTaskDelay(pdMS_TO_TICKS(50));
+      } else if (!TXTaskStopRequested) {
+        dbgWarn("Dropped " + String(notifyLen) + " bytes after notify timeout");
+      }
 
       numBytes = xStreamBufferReceive(TXStream, txChunk, maxChunk, 0);
     }

@@ -18,7 +18,7 @@ constexpr uint32_t kStartupDelay = 50; // Time in ms to let peripherals come onl
 void power::init() {
   dbgInfo("Initializing pins...");
   initPins();             // Set the pin directions
-  powerOffPeripherials(); // Default states
+  powerOffPeripherals(); // Default states
   enableDCDC();           // Turn on the dc-dc converter to save power
   startHeartbeatTask();   // Start the LED heartbeat
 }
@@ -100,7 +100,7 @@ void power::reconnectInputGPIO(uint32_t pin, PullConfig pull = PullConfig::Disab
                        ((uint32_t)GPIO_PIN_CNF_SENSE_Disabled << GPIO_PIN_CNF_SENSE_Pos);
 }
 
-// Assume transitioning from peripherialOffState
+// Assume transitioning from peripheralOffState
 void power::powerOnAFE(uint8_t muxChannel) {
   digitalWrite(PIN_BUCKBOOST_ANALOG_EN, HIGH); // Turn on the LDO output of the buck/boost converter (Out1)
   digitalWrite(PIN_AFE_VDD_CTRL, LOW);         // AFE on (active low)
@@ -115,7 +115,7 @@ void power::powerOnAFE(uint8_t muxChannel) {
   delay(kStartupDelay); // Needed to let the chips startup before we do anything
 }
 
-// Assume transitioning from peripherialOffState
+// Assume transitioning from peripheralOffState
 void power::powerOnTempSensor() {
   digitalWrite(PIN_BUCKBOOST_ANALOG_EN, HIGH); // Turn on the LDO output of the buck/boost converter (Out1)
   digitalWrite(PIN_TEMP_VDD_CTRL, LOW);        // Turn on the temp load switch (active low)
@@ -140,7 +140,7 @@ void power::powerOnIontophoresis() {
   delay(kStartupDelay); // Needed to let the chips startup before we do anything
 }
 
-void power::powerOffPeripherials() {
+void power::powerOffPeripherals() {
   digitalWrite(PIN_BUCKBOOST_ANALOG_EN, LOW); // Turn off the LDO output of the buck/boost converter (Out1)
   digitalWrite(PIN_BOOST_EN, LOW);            // Turn off the 20V boost converter
   digitalWrite(PIN_BUCKBOOST_AUX_EN, LOW);    // Turn off the current monitoring amplifier
@@ -169,3 +169,4 @@ void power::powerOffPeripherials() {
   digitalWrite(PIN_AFE_RESET, LOW);
   digitalWrite(PIN_SPI_CS, LOW);
 }
+
