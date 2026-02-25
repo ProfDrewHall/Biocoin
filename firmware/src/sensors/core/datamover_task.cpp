@@ -45,7 +45,8 @@ void sensor::startDataMoverTask() {
     BaseType_t taskWoken = pdFALSE;
     // This function is entered from the GPIO interrupt handler path. We must use
     // ISR-safe FreeRTOS APIs here; task-context APIs can assert or corrupt scheduler state.
-    xTaskNotifyGiveFromISR(dataTaskHandle, &taskWoken);
+    // Use vTaskNotifyGiveFromISR for compatibility with this FreeRTOS port.
+    vTaskNotifyGiveFromISR(dataTaskHandle, &taskWoken);
     portYIELD_FROM_ISR(taskWoken);
   }
 }
@@ -57,7 +58,6 @@ void sensor::dataMoverTask(void* pvParameters) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // wait until we are awaken by an interrupt
     if (dataTaskStopRequested.load(std::memory_order_relaxed)) break;
 
-    dbgInfo("DataMover()");
     sensor::Sensor* activeSensor = getActiveSensor();
     if (activeSensor != nullptr) {
       activeSensor->ISR();
