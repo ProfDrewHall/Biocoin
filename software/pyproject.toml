@@ -1,22 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "software"
-version = "0.1.0"
-description = "Add your description here"
+name = "biocoin"
+version = "0.2.0"
+description = "Python client and CLI for the Biocoin BLE electrochemistry device."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "bleak>=0.22.3",
     "colorama>=0.4.6",
     "numpy>=2.3.1",
-    "pandas>=2.3.0",
-    "ruff>=0.12.1",
-    "ty>=0.0.1a12",
 ]
 
 [tool.ruff]
 line-length = 120
 indent-width = 4
-target-version = 'py310'
+target-version = 'py313'
 
 [tool.ruff.format]
 quote-style = 'single'          # Use single quotes for strings
@@ -29,9 +30,11 @@ docstring-code-line-length = 120
 
 [tool.ruff.lint]
 select = ['E', 'F', 'I', 'UP', 'B', 'A', 'C4', 'TID', 'NPY', 'RUF']
+extend-select = ['D213']
 ignore = [
     'D100',  # Missing docstring in public module
     'D104',  # Missing docstring in public package
+    'D203',  # one-blank-line-before-class (conflicts with D211/Black)
 ]
 fixable = ['ALL']
 unfixable = []
@@ -44,5 +47,27 @@ docstring-quotes = "single"
 
 [dependency-groups]
 dev = [
-    "ty>=0.0.1a11",
+    "mypy>=1.18.1",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.1.0",
+    "ruff>=0.12.1",
+    "ty>=0.0.1a12",
 ]
+
+[tool.mypy]
+python_version = "3.13"
+files = ["src/biocoin", "src/utils"]
+mypy_path = ["src"]
+explicit_package_bases = true
+ignore_missing_imports = true
+follow_imports = "silent"
+warn_unused_configs = true
+warn_return_any = true
+disable_error_code = ["override"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["biocoin*", "utils*"]

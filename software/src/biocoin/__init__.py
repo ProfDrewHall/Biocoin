@@ -1,12 +1,11 @@
-from .device import BioCoinDevice
+"""
+Public package exports for the Biocoin Python client.
+"""
 
-__all__ = ['BioCoinDevice']
+from .device import BiocoinDevice
 
-# Optional: define version string
-__version__ = '0.1.0'
+__all__ = ['BiocoinDevice']
 
-import logging
+__version__ = '0.2.0'
 
-logger = logging.getLogger(__name__)
-# if not logger.hasHandlers():
-#    logging.basicConfig(level=logging.INFO)
+

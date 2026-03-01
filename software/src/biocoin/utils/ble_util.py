@@ -1,38 +1,22 @@
-########################################################################################################################
-#
-# BioCoin BLE Utility Functions
-#
-# Provides helper functions for scanning and identifying BLE devices compatible with the BioCoin platform.
-# Currently supports discovery by advertised service UUID and optional device name filtering.
-#
-# Written By:
-#   - Drew Hall (drewhall@ucsd.edu)
-#
-# Known Issues:
-#   - Does not support reconnection handling
-#   - Assumes BLE advertising packets always include service UUIDs
-#
-# Revision History:
-#   - 28 June 2025: Initial implementation of BLE discovery utilities
-#
-########################################################################################################################
-import logging
+"""
+BLE utility helpers for discovery and advertised-service filtering.
+"""
 
 from bleak import BleakClient, BleakScanner
 
-# Setup logging
-logger = logging.getLogger(__name__)
+from utils.logging_util import get_logger
+
+logger = get_logger(__name__)
 
 
 async def list_ble_services_and_characteristics(client: BleakClient) -> None:
     """
-    Lists all services and their characteristics from a connected BLE device
+    Lists all services and their characteristics from a connected BLE device.
 
     Parameters:
-        client (BleakClient): An active, connected BleakClient instance
-
+        - client (BleakClient): An active, connected BleakClient instance.
     Returns:
-
+        - None
     """
     logger.info('Listing available services and characteristics...')
 
@@ -42,21 +26,23 @@ async def list_ble_services_and_characteristics(client: BleakClient) -> None:
     # Get all services from the client
     await client.get_services()
 
-    logging.info('Available services and characteristics:')
+    logger.info('Available services and characteristics:')
     for service in client.services:
-        logging.info(f'Service: {service.uuid}')
+        logger.info(f'Service: {service.uuid}')
         for char in service.characteristics:
-            logging.info(f'  Characteristic: {char.uuid} - Properties: {char.properties}')
+            logger.info(f'  Characteristic: {char.uuid} - Properties: {char.properties}')
 
 
 async def list_all_devices() -> list[tuple[str, str, list[str]]]:
     """
-    List all nearby BLE devices
+    List all nearby BLE devices.
 
+    Parameters:
+        - None
     Returns:
-        List of tuples: (device name, device address, list of advertised service UUIDs)
+        - list[tuple[str, str, list[str]]]: Tuples of (device name, device address, advertised UUIDs).
     """
-    logging.info('Scanning for devices...')
+    logger.info('Scanning for devices...')
     devices = await BleakScanner.discover(return_adv=True)
     results = []
 
@@ -64,23 +50,23 @@ async def list_all_devices() -> list[tuple[str, str, list[str]]]:
         name = device.name or 'Unknown'
         address = device.address
         uuids = adv_data.service_uuids or []
-        logging.debug(f'\tDevice: {name} ({address}) | UUIDs: {uuids}')
+        logger.debug(f'\tDevice: {name} ({address}) | UUIDs: {uuids}')
         results.append((name, address, uuids))
 
     return results
 
 
-async def find_address_by_uuid(uuid: str, name: str | None = None) -> tuple[str, str] | tuple[None, None]:
+async def find_address_by_uuid(uuid: str, name: str | None = None) -> tuple[str | None, str | None]:
     """
     Find the address of the device by matching the advertised service UUID,
     and optionally filtering by device name.
 
     Parameters:
-        uuid (str): UUID of the device service to match
-        name (Optional[str]): Optional name of the device to match
+        - uuid (str): UUID of the device service to match.
+        - name (str | None): Optional name of the device to match.
 
     Returns:
-        Tuple[str, str] or (None, None): (device name, device address), or (None, None) if not found
+        - tuple[str | None, str | None]: (device name, device address), or (None, None) if not found.
     """
     devices = await list_all_devices()
 
@@ -90,3 +76,5 @@ async def find_address_by_uuid(uuid: str, name: str | None = None) -> tuple[str,
                 return device_name, address
 
     return None, None
+
+

@@ -1,91 +1,135 @@
-# BioCoin Device Software
+# Biocoin Device Software
 
-This repository contains Python code to interface with the BioCoin hardware platform over BLE using the Bluefruit stack.
-It supports configuration and execution of multiple electrochemical sensing techniques, including CA, OCP, TEMP, and
-Iontophoresis. The software enables data acquisition, processing, and export to CSV format for further analysis.
+This repository contains Python code to interface with the Biocoin hardware platform over BLE.
+It supports configuration and execution of all currently implemented techniques:
+
+- Chronoamperometry (CA)
+- Cyclic Voltammetry (CV)
+- Differential Pulse Voltammetry (DPV)
+- Square-Wave Voltammetry (SWV)
+- Impedance Spectroscopy (IMP)
+- Open-Circuit Potential (OCP)
+- Temperature Monitoring (TEMP)
+- Iontophoresis (IONTOPH)
+
+The software is organized as a reusable package (`biocoin`) plus standalone technique runner scripts under `src/`.
 
 ---
 
-## 📦 Setup
+## Setup
 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/ProfDrewHall/BioCoin.git
-cd BioCoin/software
+git clone https://github.com/ProfDrewHall/Biocoin.git
+cd Biocoin/software
 ```
 
-### 2. Install the package manager `uv`
+### 2. Install `uv`
+
+macOS / Linux:
 
 ```bash
-curl -Ls https://astral.sh/uv/install.sh | sh
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-### 3. Install dependencies
+Windows (PowerShell):
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+### 3. Run a technique script
+
+Example:
 
 ```bash
-uv install
+uv run python src/run_CA.py --help
 ```
+
+`uv run` will create/sync the environment automatically as needed.
 
 ---
 
+## Technique Runner Scripts
 
-## ⚙️ Features
-
-- BLE-based communication with the BioCoin device
-- Support for multiple techniques:
-  - Chronoamperometry (CA)
-  - Open-Circuit Potential (OCP)
-  - Temperature Monitoring (TEMP)
-  - Iontophoresis (IONTOPH)
-
----
-
-## 🚀 Example Usage
-
-Run an experiment from `main.py`:
+Each technique has a dedicated CLI script that exposes its parameters:
 
 ```bash
-uv run src/main.py
+uv run python src/run_CA.py --help
+uv run python src/run_CV.py --help
+uv run python src/run_DPV.py --help
+uv run python src/run_SWV.py --help
+uv run python src/run_IMP.py --help
+uv run python src/run_OCP.py --help
+uv run python src/run_TEMP.py --help
+uv run python src/run_IONTO.py --help
 ```
 
-Each technique configuration follows a consistent interface. For example:
-
-```python
-ca = ChronoAmperometry(device)
-await ca.configure(sampling_interval=1.0, processing_interval=1.0, max_current=100.0, pulse_potential=200.0, channel=1)
-data = await ca.run(duration=15)
-```
+Typical output CSV paths default to `./results/*_output.csv` for data-producing techniques.
 
 ---
 
-## 📂 Directory Layout
+## Technique Lifecycle Contract
 
-```
+General flow:
+
+1. `await technique.configure(...)`
+2. `data = await technique.run(...)`
+3. Consume `data` as a NumPy array
+
+Returned shape expectations:
+
+- Timed techniques (`CA`, `OCP`, `TEMP`, `IMP`) can return a variable number of samples based on BLE/runtime timing.
+- Sweep techniques (`CV`, `DPV`, `SWV`) are expected to return deterministic point counts from their configured vectors.
+- `Iontophoresis` does not stream samples and returns an empty `(0, 2)` array.
+
+---
+
+## Directory Layout
+
+```text
 src/
-├── biocoin/
-│   ├── device.py
-│   └── techniques/
-│       ├── ca.py
-│       ├── ocp.py
-│       ├── temp.py
-│       └── iontophoresis.py
-│   └── utils/
-│       ├── ble_utils.py
-├── main.py
-└── utils/
-    └── logging.py
+|-- run_CA.py
+|-- run_CV.py
+|-- run_DPV.py
+|-- run_SWV.py
+|-- run_IMP.py
+|-- run_OCP.py
+|-- run_TEMP.py
+|-- run_IONTO.py
+|-- biocoin/
+|   |-- __init__.py
+|   |-- device.py
+|   |-- errors.py
+|   |-- techniques/
+|   |   |-- __init__.py
+|   |   |-- base_technique.py
+|   |   |-- ca.py
+|   |   |-- cv.py
+|   |   |-- dpv.py
+|   |   |-- swv.py
+|   |   |-- impedance.py
+|   |   |-- ocp.py
+|   |   |-- temp.py
+|   |   |-- iontophoresis.py
+|   |   |-- pulse_voltammetry.py
+|   |   `-- validation.py
+|   `-- utils/
+|       `-- ble_util.py
+`-- utils/
+    `-- logging_util.py
 ```
 
 ---
 
-## 📄 License
+## License
 
 MIT License
 
 ---
 
-## 👤 Authors
+## Authors
 
 **Drew A. Hall**
 University of California, San Diego

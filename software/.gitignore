@@ -1,0 +1,29 @@
+# Virtual environments
+.venv/
+.uv-venv/
+.venv.broken-*/
+
+# Python caches and bytecode
+__pycache__/
+*.py[cod]
+
+# Packaging artifacts
+*.egg-info/
+
+# Tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local outputs
+logs/
+results/
+tmp/
+tests/logs/
+tests/results/
+tests/tmp/
+
+# Coverage artifacts
+.coverage
+coverage.xml
+htmlcov/
