@@ -6,4 +6,8 @@ firmware/.vscode/ipch
 
 software/logs/*
 
+# Python caches and bytecode
+__pycache__/
+*.py[cod]
+
 **/.DS_Store
