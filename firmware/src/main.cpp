@@ -24,10 +24,13 @@
 void setup() {
 #ifdef DEBUG_MODE
   Serial.begin(115200); // The baudrate here does not matter when using USB CDC
-  while (!Serial)
-    delay(10); // Wait for a serial connection if we are debugging
+  const uint32_t serialWaitStartMs = millis();
+  constexpr uint32_t kSerialWaitTimeoutMs = 2000;
+  while (!Serial && (millis() - serialWaitStartMs) < kSerialWaitTimeoutMs) {
+    delay(10); // Wait briefly for serial in debug builds, but do not block BLE startup.
+  }
 
-  delay(1000); // Wait for the serial monitor to start (important)
+  if (Serial) delay(1000); // Give the serial monitor time to attach when present.
 
   dbgInfo(kWelcomeMessage);
   dbgInfo("Version info:");

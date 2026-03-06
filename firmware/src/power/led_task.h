@@ -10,4 +10,8 @@ namespace power {
    * @brief Start low-priority heartbeat LED task used for runtime liveness indication.
    */
   void startHeartbeatTask();
+  /**
+   * @brief Request heartbeat LED task stop and wait for task exit.
+   */
+  void stopHeartbeatTask();
 } // namespace power

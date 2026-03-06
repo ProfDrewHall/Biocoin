@@ -7,6 +7,13 @@
 - Status: single-byte `TestState`.
 - Data: raw little-endian float stream.
 
+### Debug-only Characteristics (`DEBUG_MODE` builds only)
+
+- Debug Battery Voltage: UUID `00001526-1212-EFDE-1523-785FEABC93AA`
+  - Properties: `READ`, `NOTIFY`
+  - Payload: 2-byte unsigned little-endian battery voltage in millivolts (`uint16`)
+  - Example: payload `0xD2 0x0E` => `3794 mV`
+
 ## Payload Compatibility Rules
 
 - Control writes must be exactly 1 byte.

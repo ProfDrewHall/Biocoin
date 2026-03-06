@@ -2,6 +2,7 @@
 
 - `BLE_PROTOCOL.md`: BLE characteristics, command framing, and payload notes.
 - `BUILD_FLASH.md`: Build/flash notes and environment assumptions.
+- `BATTERY_CALIBRATION.md`: BLE logging, curve fitting, and config update workflow for battery percent calibration.
 - `CA_TECHNIQUE.md`: CA-specific parameter constraints, timing behavior, and ENDSEQ handling.
 - `CV_TECHNIQUE.md`: CV parameter constraints, wakeup timing guards, and ENDSEQ behavior.
 - `DPV_TECHNIQUE.md`: DPV parameter constraints, pulse timing guards, and ENDSEQ behavior.

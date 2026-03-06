@@ -1,6 +1,6 @@
 /**
  * @file variant.h
- * @brief Arduino variant pin and peripheral definitions for the BioCoin board.
+ * @brief Arduino variant pin and peripheral definitions for the Biocoin board.
  */
 
  /*

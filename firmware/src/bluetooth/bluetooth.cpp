@@ -59,7 +59,7 @@ void bluetooth::init() {
   initStandardServices(); // Initialize standard GATT services (e.g., DIS, BAS, DFU)
   initGatt();             // Set up all custom services and characteristics
 
-  // Advertise BioCoin service
+  // Advertise Biocoin service
   Bluefruit.Advertising.addFlags(BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE);
   Bluefruit.Advertising.addTxPower();
   Bluefruit.Advertising.addService(bleService);
@@ -136,4 +136,7 @@ void bluetooth::onConnect(uint16_t conn_handle) {
 void bluetooth::onDisconnect(uint16_t conn_handle, uint8_t reason) {
   dbgInfo(String("Disconnected, reason = ") + reason);
   battery::stop();
+#if BIOCOIN_ENABLE_DEBUG_GATT
+  resetDebugStateOnDisconnect();
+#endif
 }

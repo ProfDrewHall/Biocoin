@@ -1,5 +1,39 @@
 # Revision History
 
+## Unreleased
+- Added battery coefficients for FP10AAB36 battery
+- Task lifecycle alignment:
+  - Added full heartbeat LED task lifecycle control (`startHeartbeatTask` + `stopHeartbeatTask`) with cooperative notify-based shutdown in `src/power/led_task.cpp`.
+- Battery API naming alignment:
+  - Renamed battery APIs:
+    - `readVoltage(...)` -> `readBatteryVoltageV(...)`
+    - `readLevel(...)` -> `readBatteryPercent(...)`
+    - `mapBatteryLevel(...)` -> `voltageToPercent(...)`
+- BLE protocol/debug documentation:
+  - Added debug-only battery-voltage characteristic details to `docs/BLE_PROTOCOL.md` (UUID `0x1526`, `uint16` little-endian mV payload).
+- Repository alignment cleanup:
+  - Standardized product naming to `Biocoin` across firmware/docs defaults/comments.
+  - Fixed stale variant comment in `platformio.ini`.
+  - Updated pre-push/release flow alignment so `.githooks/pre-push` runs sanity + smoke checks before `debug`/`release` builds and artifact sync.
+  - Refreshed `scripts/smoke_sensor_modes.sh` paths for current `src/sensors/core` + `src/sensors/techniques/*` layout.
+  - Expanded `.gitignore` hygiene for Python/test artifacts and local outputs (`__pycache__`, logs, CSV/PNG, temp, coverage) in both firmware scripts and `software/`.
+
+## v1.1.3 - 2026-03-06
+
+- Battery calibration and model update:
+  - Added BLE battery logging + analysis workflow docs and scripts (`docs/BATTERY_CALIBRATION.md`, `scripts/log_battery_ble.py`, `scripts/analyze_battery_curve.py`).
+  - Updated battery sigmoid mapping constants in `src/HWConfig/config.h` from fitted calibration outputs.
+- Debug BLE battery/AFE controls (debug builds only):
+  - Added debug battery-voltage characteristic support and host refresh command handling.
+  - Added debug AFE burn-load control characteristic (`0x1527`) for controlled discharge testing.
+  - Added disconnect-time cleanup to ensure debug AFE burn mode is turned off.
+- BLE logger robustness improvements:
+  - Added full discovered-device/UUID scan printing mode (`--print-discovered`).
+  - Added Windows-focused connection retry + uncached service discovery fallback handling.
+  - Added graceful recovery/exit behavior for mid-session `Not connected` disconnects.
+- Debug startup reliability:
+  - Capped debug serial wait at startup so BLE advertising still starts without an attached serial monitor.
+
 ## v1.1.2 - 2026-02-25
 
 - Technique refactor for reuse and clarity:

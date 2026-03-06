@@ -57,7 +57,7 @@ namespace sensor::lpLoop {
     AD5940_LPLoopCfgS(&lpLoop);
   }
 
-  inline void configureOpenCircuitLoop(float vzeroMv, float vbiasMv) {
+  inline void configureOpenCircuitLoop(float vZeromV, float vBiasmV) {
     LPLoopCfg_Type lpLoop = {};
     lpLoop.LpDacCfg.LpdacSel = LPDAC0;
     lpLoop.LpDacCfg.LpDacSrc = LPDACSRC_MMR;
@@ -67,9 +67,9 @@ namespace sensor::lpLoop {
     lpLoop.LpDacCfg.LpDacRef = LPDACREF_2P5;
     lpLoop.LpDacCfg.DataRst = bFALSE;
     lpLoop.LpDacCfg.PowerEn = bTRUE;
-    lpLoop.LpDacCfg.DacData6Bit = clampDacData6Bit(static_cast<int32_t>((vzeroMv - AD5940_MIN_DAC_OUTPUT) /
+    lpLoop.LpDacCfg.DacData6Bit = clampDacData6Bit(static_cast<int32_t>((vZeromV - AD5940_MIN_DAC_OUTPUT) /
                                                                          AD5940_6BIT_DAC_1LSB));
-    lpLoop.LpDacCfg.DacData12Bit = clampDacData12Bit(static_cast<int32_t>((vbiasMv - AD5940_MIN_DAC_OUTPUT) /
+    lpLoop.LpDacCfg.DacData12Bit = clampDacData12Bit(static_cast<int32_t>((vBiasmV - AD5940_MIN_DAC_OUTPUT) /
                                                                            AD5940_12BIT_DAC_1LSB));
 
     lpLoop.LpAmpCfg.LpAmpSel = LPAMP0;

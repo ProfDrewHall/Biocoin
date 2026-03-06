@@ -18,13 +18,17 @@ namespace sensor {
 
 void sensor::Iontophoresis::startStimulationMonitoringTask() {
   if (stimulationTaskHandle == nullptr) {
-    xTaskCreate(stimulationTask,               // Task function
-                "Stimulation Current Monitor", // Task name
-                512,                           // Stack size (words)
-                this,                          // Task parameters
-                0,                             // Priority
-                &stimulationTaskHandle         // Save handle
+    BaseType_t rc = xTaskCreate(stimulationTask,               // Task function
+                                "Stimulation Current Monitor", // Task name
+                                512,                           // Stack size (words)
+                                this,                          // Task parameters
+                                0,                             // Priority
+                                &stimulationTaskHandle         // Save handle
     );
+    if (rc != pdPASS) {
+      stimulationTaskHandle = nullptr;
+      dbgError("Failed to start stimulation monitor task");
+    }
   }
 }
 
@@ -73,7 +77,7 @@ void sensor::Iontophoresis::stimulationTask(void* pvParameters) {
     float avgADCReading = static_cast<float>(total) / kNumADCSamplesToAverage; // Average the reading
     float current = avgADCReading * kmVperLSB / config.Rsense / config.Av_CSA * 1000;
 
-    dbgInfo(String("Measured current (uA):") + current);
+    dbgInfo(String("Measured current (uA): ") + current);
 
     // check if current exceeds maximum allowed value for safety reasons
     if (current > config.maxCurrent) {

@@ -43,8 +43,8 @@ This document defines coding, naming, and documentation conventions for firmware
 Before committing:
 
 ```bash
-bash scripts/sanity_checks.sh
-bash scripts/smoke_sensor_modes.sh
+sh scripts/sanity_checks.sh
+sh scripts/smoke_sensor_modes.sh
 ```
 
 If PlatformIO is available, also run:

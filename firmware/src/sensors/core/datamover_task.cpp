@@ -24,12 +24,16 @@ void sensor::createDataMoverTask() {
   if (dataTaskHandle != nullptr) return;
   dataTaskStopRequested.store(false, std::memory_order_relaxed);
 
-  xTaskCreate(dataMoverTask,    // Task function
-              "Data Mover",     // Task name
-              2048,             // Stack size (in words)
-              nullptr,          // Task parameters
-              1,                // Priority (very low)
-              &dataTaskHandle); // Task handle
+  BaseType_t rc = xTaskCreate(dataMoverTask,    // Task function
+                              "Data Mover",     // Task name
+                              2048,             // Stack size (in words)
+                              nullptr,          // Task parameters
+                              1,                // Priority (very low)
+                              &dataTaskHandle); // Task handle
+  if (rc != pdPASS) {
+    dataTaskHandle = nullptr;
+    dbgError("Failed to start data mover task");
+  }
 }
 
 void sensor::stopDataMoverTask() {

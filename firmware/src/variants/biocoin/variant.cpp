@@ -1,7 +1,7 @@
 /**
  * @file variant.cpp
- * @brief Arduino variant pin tables and runtime variant data for BioCoin.
- * @details Defines the pin mapping table and boot-time pin defaults for the local BioCoin variant.
+ * @brief Arduino variant pin tables and runtime variant data for Biocoin.
+ * @details Defines the pin mapping table and boot-time pin defaults for the local Biocoin variant.
  */
 
 /*

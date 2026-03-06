@@ -1,29 +1,33 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/usr/bin/env sh
+set -eu
 
 fail=0
 
 echo "[smoke] Checking SensorManager registry cases..."
 for mode in CA CV DPV SWV IMP OCP TEMP IONTOPHORESIS; do
-  if ! rg -n "case SensorType::${mode}:" src/sensors/sensor_manager.cpp >/dev/null 2>&1; then
+  if ! rg -n "case SensorType::${mode}:" src/sensors/core/sensor_manager.cpp >/dev/null 2>&1; then
     echo "[smoke] Missing SensorType::${mode} in createSensor switch"
     fail=1
   fi
 done
 
 echo "[smoke] Checking per-mode control/parser entry points..."
-declare -a files=(
-  "src/sensors/echem_ca.cpp"
-  "src/sensors/echem_cv.cpp"
-  "src/sensors/echem_dpv.cpp"
-  "src/sensors/echem_swv.cpp"
-  "src/sensors/echem_imp.cpp"
-  "src/sensors/echem_ocp.cpp"
-  "src/sensors/echem_temp.cpp"
-  "src/sensors/iontophoresis.cpp"
-)
+for f in \
+  "src/sensors/techniques/ca/echem_ca.cpp" \
+  "src/sensors/techniques/cv/echem_cv.cpp" \
+  "src/sensors/techniques/dpv/echem_dpv.cpp" \
+  "src/sensors/techniques/swv/echem_swv.cpp" \
+  "src/sensors/techniques/imp/echem_imp.cpp" \
+  "src/sensors/techniques/ocp/echem_ocp.cpp" \
+  "src/sensors/techniques/temp/echem_temp.cpp" \
+  "src/sensors/techniques/iontophoresis/iontophoresis.cpp"
+do
+  if [ ! -f "$f" ]; then
+    echo "[smoke] Missing file: ${f}"
+    fail=1
+    continue
+  fi
 
-for f in "${files[@]}"; do
   if ! rg -n "::loadParameters\\(" "$f" >/dev/null 2>&1; then
     echo "[smoke] Missing loadParameters() in ${f}"
     fail=1
@@ -38,7 +42,7 @@ for f in "${files[@]}"; do
   fi
 done
 
-if [[ "$fail" -ne 0 ]]; then
+if [ "$fail" -ne 0 ]; then
   echo "[smoke] FAILED"
   exit 1
 fi

@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/usr/bin/env sh
+set -eu
 
 fail=0
 
@@ -16,15 +16,21 @@ if rg -n '^\s*using namespace\s+' src --glob '*.cpp' >/dev/null 2>&1; then
 fi
 
 echo "[sanity] Checking for CRLF characters in tracked text files..."
+tmpfile="$(mktemp)"
+trap 'rm -f "$tmpfile"' EXIT
+
+git ls-files | grep -E '(\.c|\.cpp|\.h|\.hpp|\.md|\.ini|\.txt|\.yml|\.yaml|\.sh)$|(^|/)\.gitignore$|(^|/)\.clang-format$' > "$tmpfile" || true
+
+cr_char="$(printf '\r')"
 while IFS= read -r f; do
-  [[ -f "$f" ]] || continue
-  if LC_ALL=C grep -q $'\r' "$f"; then
+  [ -f "$f" ] || continue
+  if LC_ALL=C grep -q "$cr_char" "$f"; then
     echo "$f"
     fail=1
   fi
-done < <(git ls-files | grep -E '(\.c|\.cpp|\.h|\.hpp|\.md|\.ini|\.txt|\.yml|\.yaml|\.sh)$|(^|/)\.gitignore$|(^|/)\.clang-format$')
+done < "$tmpfile"
 
-if [[ "$fail" -ne 0 ]]; then
+if [ "$fail" -ne 0 ]; then
   echo "[sanity] FAILED"
   exit 1
 fi

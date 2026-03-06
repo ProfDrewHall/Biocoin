@@ -9,6 +9,7 @@
 #include "HWConfig/config.h"
 #include "battery/battery.h"
 #include "bluetooth/bluetooth.h"
+#include "bluetooth/gatt.h"
 #include "util/debug_log.h"
 #include "util/task_sync.h"
 
@@ -50,8 +51,13 @@ void battery::batteryTask(void* pvParameters) {
     // Stop signal can be consumed immediately or while waiting for next period.
     if (ulTaskNotifyTake(pdTRUE, 0) > 0) break;
 
-    uint8_t batteryPercent = readLevel(kNumADCSamplesToAverage);
+    const float voltageV = readBatteryVoltageV(kNumADCSamplesToAverage);
+    const uint8_t batteryPercent = voltageToPercent(voltageV);
     bluetooth::blebas.notify(batteryPercent);
+#if BIOCOIN_ENABLE_DEBUG_GATT
+    const uint16_t voltageMillivolts = static_cast<uint16_t>(voltageV * 1000.0f + 0.5f);
+    bluetooth::updateDebugBatteryVoltageMillivolts(voltageMillivolts);
+#endif
 
     if (ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(kBatteryUpdateRate)) > 0) break;
   }

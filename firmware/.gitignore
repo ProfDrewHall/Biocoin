@@ -4,4 +4,24 @@
 .vscode/launch.json
 .vscode/ipch
 
+# Python/uv artifacts for local scripts tooling
+scripts/.venv/
+scripts/__pycache__/
+scripts/.pytest_cache/
+scripts/.mypy_cache/
+scripts/.ruff_cache/
+scripts/.coverage
+scripts/htmlcov/
+scripts/*.pyc
+scripts/*.pyo
+scripts/*.log
+scripts/*.tmp
+scripts/*.csv
+scripts/*.png
+scripts/logs/
+scripts/results/
+scripts/battery_log.csv
+scripts/battery_fit_v_percent.png
+scripts/battery_voltage_vs_time.png
+
 **/.DS_Store

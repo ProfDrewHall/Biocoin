@@ -1,0 +1,11 @@
+[project]
+name = "biocoin-scripts"
+version = "0.1.0"
+description = "Utility scripts for Biocoin firmware workflows"
+requires-python = ">=3.10"
+dependencies = [
+  "bleak>=0.22",
+  "matplotlib>=3.8",
+  "numpy>=1.26",
+  "scipy>=1.11",
+]

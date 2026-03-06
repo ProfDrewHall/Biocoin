@@ -11,13 +11,14 @@
 
 #include <Arduino.h>
 #include <algorithm>
+#include <atomic>
 #include <stream_buffer.h>
 #include <vector>
 
 namespace bluetooth {
   static StreamBufferHandle_t TXStream = nullptr;
   static TaskHandle_t TXTaskHandle = nullptr;
-  static bool TXTaskStopRequested = false;
+  static std::atomic_bool TXTaskStopRequested{false};
   static void transmitTask(void* pvParameters);
 
   constexpr size_t kTxStreamCapacity = 8192;
@@ -28,7 +29,7 @@ namespace bluetooth {
 
 void bluetooth::createTransmitTask() {
   if (TXTaskHandle != nullptr) return;
-  TXTaskStopRequested = false;
+  TXTaskStopRequested.store(false, std::memory_order_relaxed);
 
   if (TXStream == nullptr) {
     TXStream = xStreamBufferCreate(kTxStreamCapacity, 1);
@@ -38,19 +39,22 @@ void bluetooth::createTransmitTask() {
     }
   }
 
-  xTaskCreate(transmitTask,   // Task function
-              "BLE TX",       // Task name
-              2048,           // Stack size (in words)
-              nullptr,        // Task parameters
-              1,              // Priority (very low)
-              &TXTaskHandle); // Task handle
+  BaseType_t rc = xTaskCreate(transmitTask,   // Task function
+                              "BLE TX",       // Task name
+                              2048,           // Stack size (in words)
+                              nullptr,        // Task parameters
+                              1,              // Priority (very low)
+                              &TXTaskHandle); // Task handle
+  if (rc != pdPASS) {
+    TXTaskHandle = nullptr;
+    dbgError("Failed to start BLE TX task");
+  }
 }
 
 void bluetooth::stopTransmitTask() {
   if (TXTaskHandle == nullptr) return;
 
-  TXTaskStopRequested = true;
-  vTaskResume(TXTaskHandle);
+  TXTaskStopRequested.store(true, std::memory_order_relaxed);
   if (!taskSync::requestStopAndWait(TXTaskHandle, kTxTaskStopTimeoutTicks)) dbgWarn("BLE TX task stop timed out");
 }
 
@@ -63,7 +67,6 @@ void bluetooth::startTransmitTask(const std::vector<uint8_t>& data) {
   }
 
   xTaskNotifyGive(TXTaskHandle);
-  vTaskResume(TXTaskHandle);
 }
 
 void bluetooth::clearTransmitBuffer() {
@@ -81,18 +84,18 @@ void bluetooth::transmitTask(void* pvParameters) {
 
   while (true) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-    if (TXTaskStopRequested) break;
+    if (TXTaskStopRequested.load(std::memory_order_relaxed)) break;
 
     size_t maxChunk = std::min(sizeof(txChunk), static_cast<size_t>(dataSize));
     size_t numBytes = xStreamBufferReceive(TXStream, txChunk, maxChunk, 0);
-    while (numBytes > 0 && !TXTaskStopRequested) {
+    while (numBytes > 0 && !TXTaskStopRequested.load(std::memory_order_relaxed)) {
       uint16_t notifyLen = static_cast<uint16_t>(numBytes);
 
       TickType_t start = xTaskGetTickCount();
       const TickType_t timeout = pdMS_TO_TICKS(500);
 
       bool notifyOk = false;
-      while (notifyLen > 0 && !TXTaskStopRequested) {
+      while (notifyLen > 0 && !TXTaskStopRequested.load(std::memory_order_relaxed)) {
         if (chrSensorData.notify(txChunk, notifyLen)) {
           notifyOk = true;
           break;
@@ -108,20 +111,17 @@ void bluetooth::transmitTask(void* pvParameters) {
       if (notifyOk) {
         dbgInfo("Sent " + String(notifyLen) + " bytes");
         vTaskDelay(pdMS_TO_TICKS(50));
-      } else if (!TXTaskStopRequested) {
+      } else if (!TXTaskStopRequested.load(std::memory_order_relaxed)) {
         dbgWarn("Dropped " + String(notifyLen) + " bytes after notify timeout");
       }
 
       numBytes = xStreamBufferReceive(TXStream, txChunk, maxChunk, 0);
     }
 
-    if (TXTaskStopRequested) break;
-
-    dbgInfo("BLE transmit task suspending.");
-    vTaskSuspend(nullptr);
+    if (TXTaskStopRequested.load(std::memory_order_relaxed)) break;
   }
 
-  TXTaskStopRequested = false;
+  TXTaskStopRequested.store(false, std::memory_order_relaxed);
   TXTaskHandle = nullptr;
   vTaskDelete(nullptr);
 }

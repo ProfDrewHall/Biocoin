@@ -1,6 +1,6 @@
-# BioCoin Firmware
+# Biocoin Firmware
 
-Firmware for the BioCoin wearable electrochemical platform.
+Firmware for the Biocoin wearable electrochemical platform.
 This code runs on an nRF52840-based board and controls an Analog Devices AD5940 for multi-modal electrochemical sensing. It exposes a BLE interface for configuring techniques, starting/stopping tests, and streaming results to a host (Python app, mobile, etc.).
 
 Current release: **v1.1.2**
@@ -40,7 +40,7 @@ From VS Code (PlatformIO) or CLI:
 pio run
 ```
 
-Optional pre-push hook (builds `debug` + `release` and copies artifacts to `build/<env>/`):
+Optional pre-push hook (runs sanity checks + mode smoke checks, builds `debug` + `release`, and copies artifacts to `build/<env>/`):
 ```bash
 git config core.hooksPath .githooks
 ```
@@ -143,6 +143,7 @@ For lowest-power operation, SDK-level `WInterrupts` changes are still required (
 - `docs/README.md` - docs index and navigation
 - `docs/BLE_PROTOCOL.md` - protocol and payload reference
 - `docs/BUILD_FLASH.md` - build/flash environment notes
+- `docs/BATTERY_CALIBRATION.md` - BLE logging + fit workflow for battery percent calibration constants
 - `docs/POWER.md` - low-power behavior and SDK patch requirements
 - `docs/RELEASE_CHECKLIST.md` - release prep checklist
 - `test/README.md` - targeted parser/state transition test plan and vectors

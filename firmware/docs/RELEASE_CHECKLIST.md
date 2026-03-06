@@ -2,9 +2,7 @@
 
 ## Minimum Acceptance (must pass)
 
-- [ ] `pio run` completes for release target(s).
-- [ ] `bash scripts/sanity_checks.sh` passes.
-- [ ] `bash scripts/smoke_sensor_modes.sh` passes.
+- [ ] `.githooks/pre-push` passes locally (sanity checks + mode smoke checks + `debug`/`release` builds + artifact copy).
 - [ ] BLE smoke path passes at least once per release build: connect -> write parameters -> `START` -> data notify -> `STOP`.
 - [ ] Battery reporting and device-name write/read behavior verified on hardware.
 - [ ] Sleep/idle spot-check confirms no obvious high-power regression.
@@ -18,7 +16,9 @@
 
 ## Build and Validation
 
-- [ ] Build firmware (`pio run`).
+- [ ] Run `sh scripts/sanity_checks.sh`.
+- [ ] Run `sh scripts/smoke_sensor_modes.sh`.
+- [ ] Build firmware (`pio run -e debug` and `pio run -e release`).
 - [ ] Flash and smoke test BLE connect/start/stop/data path.
 - [ ] Verify battery reporting and device-name update behavior.
 - [ ] Confirm no unintended high-power regressions.

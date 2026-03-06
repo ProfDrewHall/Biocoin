@@ -8,16 +8,30 @@
 
 #include <cstdint>
 
-#define BIOCOIN_FW_VERSION "1.1.2" // Keep in sync with release tags/app compatibility.
+#define BIOCOIN_FW_VERSION "1.1.3" // Keep in sync with release tags/app compatibility.
 
-constexpr char kFirmwareVersion[] = BIOCOIN_FW_VERSION;
-constexpr char kWelcomeMessage[] = "Biocoin v" BIOCOIN_FW_VERSION;
+#ifdef DEBUG_MODE
+#define BIOCOIN_ENABLE_DEBUG_GATT 1
+#define BIOCOIN_FW_BUILD_SUFFIX " DEBUG"
+#else
+#define BIOCOIN_ENABLE_DEBUG_GATT 0
+#define BIOCOIN_FW_BUILD_SUFFIX ""
+#endif
+
+constexpr char kFirmwareVersion[] = BIOCOIN_FW_VERSION BIOCOIN_FW_BUILD_SUFFIX;
+constexpr char kWelcomeMessage[] = "Biocoin v" BIOCOIN_FW_VERSION BIOCOIN_FW_BUILD_SUFFIX;
 
 namespace battery {
   constexpr uint32_t kBatteryUpdateRate = 5 * 60 * 1000; // Update rate [ms] for battery voltage
   constexpr uint8_t kNumADCSamplesToAverage = 100;       // Number of samples to average per battery reading
   constexpr float kADCDividerIdeal = 4.99e6f / (4.99e6f + 10e6f);
   constexpr float kADCDividerComp = 3.00400804f; // Inverse of the divider -- measured
+  // Sigmoid fit coefficients for voltage->percent mapping:
+  // % = 100 / (1 + exp(-kBatteryFitSlope * (V - kBatteryFitMidVoltage)))
+  constexpr float kBatteryFitSlope = 7.938f;
+  constexpr float kBatteryFitMidVoltage = 3.682f;
+  constexpr float kMinValidBatteryVoltageV = 2.5f;
+  constexpr float kMaxValidBatteryVoltageV = 4.5f;
 } // namespace battery
 
 namespace power {
@@ -38,7 +52,7 @@ namespace bluetooth {
 
   constexpr char kManufacturer[] = "UCSD BioEE Group";
   constexpr char kModel[] = "Biocoin v" BIOCOIN_FW_VERSION;
-  constexpr char kFirmwareRev[] = BIOCOIN_FW_VERSION;
+  constexpr char kFirmwareRev[] = BIOCOIN_FW_VERSION BIOCOIN_FW_BUILD_SUFFIX;
 
   constexpr uint8_t kUUIDService[] = {0xAA, 0x93, 0xBC, 0xEA, 0x5F, 0x78, 0x23, 0x15,
                                       0xDE, 0xEF, 0x12, 0x12, 0x23, 0x15, 0x00, 0x00};
@@ -48,6 +62,12 @@ namespace bluetooth {
 
   constexpr uint8_t kUUIDChrDeviceName[] = {0xAA, 0x93, 0xBC, 0xEA, 0x5F, 0x78, 0x23, 0x15,
                                             0xDE, 0xEF, 0x12, 0x12, 0x25, 0x15, 0x00, 0x00};
+#if BIOCOIN_ENABLE_DEBUG_GATT
+  constexpr uint8_t kUUIDChrDebugBattery[] = {0xAA, 0x93, 0xBC, 0xEA, 0x5F, 0x78, 0x23, 0x15,
+                                               0xDE, 0xEF, 0x12, 0x12, 0x26, 0x15, 0x00, 0x00};
+  constexpr uint8_t kUUIDChrDebugAFEPower[] = {0xAA, 0x93, 0xBC, 0xEA, 0x5F, 0x78, 0x23, 0x15,
+                                                0xDE, 0xEF, 0x12, 0x12, 0x27, 0x15, 0x00, 0x00};
+#endif
 
   constexpr uint8_t kUUIDChrSensorCtrl[] = {0xAA, 0x93, 0xBC, 0xEA, 0x5F, 0x78, 0x23, 0x15,
                                             0xDE, 0xEF, 0x12, 0x12, 0x28, 0x15, 0x00, 0x00};
@@ -65,5 +85,5 @@ namespace sensor {
 } // namespace sensor
 
 namespace storage {
-  constexpr const char* kDefaultName = "BioCoin"; // Must be less than BLE_GAP_DEVNAME_MAX_LEN
+  constexpr const char* kDefaultName = "Biocoin"; // Must be less than BLE_GAP_DEVNAME_MAX_LEN
 } // namespace storage
