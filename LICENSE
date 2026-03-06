@@ -1,0 +1,37 @@
+Biocoin Repository License Notice
+
+This repository contains a mix of software and hardware-design materials.
+Based on the licensing statement in the root README, and unless otherwise
+noted in a specific file or subdirectory, the repository contents are made
+available under the following terms:
+
+1. Firmware and software
+
+The contents of the following directories are provided under the MIT License:
+
+- firmware/
+- software/
+
+MIT License reference:
+https://opensource.org/licenses/MIT
+
+2. Hardware and mechanical design files
+
+The contents of the following directories are provided under the
+CERN Open Hardware Licence Version 2 - Weakly Reciprocal:
+
+- PCB/
+- fixtures/
+
+CERN-OHL-W v2.0 reference:
+https://ohwr.org/project/cernohl/wikis/Documents/CERN-OHL-version-2
+
+3. Scope and precedence
+
+If a file, directory, or bundled third-party component includes its own
+license notice, that more specific notice takes precedence for that content.
+
+This LICENSE file is a repository-level licensing notice derived from the
+project README. If you need full per-directory license texts or copyright
+notices for release or redistribution, add those notices alongside the
+relevant contents.
