@@ -17,8 +17,9 @@ constexpr float kADCRefVoltage = 1.8f;                                          
 constexpr int kADCResolution = 16383;                                                  // 14-bit ADC resolution
 constexpr float kADCScaleFactor = kADCRefVoltage / static_cast<float>(kADCResolution); // Code to Volts
 namespace {
-  float sampleBatteryVoltage(uint8_t numToAverage) {
+  float sampleBatteryVoltage(uint8_t numToAverage, bool* disconnected = nullptr) {
     if (numToAverage == 0) numToAverage = 1; // Guard against divide by 0
+    if (disconnected) *disconnected = false;
 
     power::reconnectInputGPIO(PIN_VDIV, power::PullConfig::Disabled); // Turn back on the pin
 
@@ -32,12 +33,17 @@ namespace {
 
     float totalVoltage = 0.0f;
     uint8_t validSamples = 0;
+    uint8_t disconnectedSamples = 0;
     for (uint8_t i = 0; i < numToAverage; i++) {
       const uint16_t adcReading = analogRead(PIN_VDIV);
       const float sampleVoltage = static_cast<float>(adcReading) * kADCScaleFactor * battery::kADCDividerComp;
 
+      if (sampleVoltage >= battery::kDisconnectedBatteryVoltageV) {
+        disconnectedSamples++;
+        continue;
+      }
+
       if (sampleVoltage < battery::kMinValidBatteryVoltageV || sampleVoltage > battery::kMaxValidBatteryVoltageV) {
-        dbgWarn(String("Battery sample out of range, ignoring: ") + sampleVoltage + String(" V"));
         continue;
       }
 
@@ -48,6 +54,12 @@ namespace {
     // Revert ADC to default low-power state.
     NRF_SAADC->ENABLE = SAADC_ENABLE_ENABLE_Disabled;
     power::disconnectInputGPIO(PIN_VDIV);
+
+    if (disconnectedSamples == numToAverage) {
+      if (disconnected) *disconnected = true;
+      dbgInfo("Battery not connected");
+      return 0.0f;
+    }
 
     if (validSamples == 0) {
       dbgWarn("All battery samples were out of range; returning 0V");
@@ -71,14 +83,19 @@ void battery::stop() {
   stopBatteryTask();
 }
 
-float battery::readBatteryVoltageV(uint8_t numToAverage) {
-  const float voltage = sampleBatteryVoltage(numToAverage);
+float battery::readBatteryVoltageV(uint8_t numToAverage, bool* disconnected) {
+  const float voltage = sampleBatteryVoltage(numToAverage, disconnected);
   dbgInfo(String("Battery voltage raw read, Vbatt = ") + voltage + String(" V"));
   return voltage;
 }
 
 uint8_t battery::readBatteryPercent(uint8_t numToAverage) {
-  const float voltage = readBatteryVoltageV(numToAverage);
+  bool disconnected = false;
+  const float voltage = readBatteryVoltageV(numToAverage, &disconnected);
+  if (disconnected) {
+    dbgInfo("Battery percentage forced to 100% because battery is not connected");
+    return 100;
+  }
 
   // Map it back to %
   const uint8_t batteryPercentage = voltageToPercent(voltage);

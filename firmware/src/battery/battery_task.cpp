@@ -51,8 +51,9 @@ void battery::batteryTask(void* pvParameters) {
     // Stop signal can be consumed immediately or while waiting for next period.
     if (ulTaskNotifyTake(pdTRUE, 0) > 0) break;
 
-    const float voltageV = readBatteryVoltageV(kNumADCSamplesToAverage);
-    const uint8_t batteryPercent = voltageToPercent(voltageV);
+    bool disconnected = false;
+    const float voltageV = readBatteryVoltageV(kNumADCSamplesToAverage, &disconnected);
+    const uint8_t batteryPercent = disconnected ? 100u : voltageToPercent(voltageV);
     bluetooth::blebas.notify(batteryPercent);
 #if BIOCOIN_ENABLE_DEBUG_GATT
     const uint16_t voltageMillivolts = static_cast<uint16_t>(voltageV * 1000.0f + 0.5f);

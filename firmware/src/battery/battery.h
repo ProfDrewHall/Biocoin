@@ -25,9 +25,10 @@ namespace battery {
   /**
    * @brief Read battery voltage using averaged ADC measurements.
    * @param numToAverage Number of ADC readings to average.
+   * @param disconnected Optional output set true when the battery input appears disconnected/floating.
    * @return Battery voltage in volts.
    */
-  float readBatteryVoltageV(uint8_t numToAverage = 100);
+  float readBatteryVoltageV(uint8_t numToAverage = 100, bool* disconnected = nullptr);
   /**
    * @brief Read battery percentage using averaged ADC measurements.
    * @param numToAverage Number of ADC readings to average.

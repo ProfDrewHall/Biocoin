@@ -32,6 +32,7 @@ namespace battery {
   constexpr float kBatteryFitMidVoltage = 3.682f;
   constexpr float kMinValidBatteryVoltageV = 2.5f;
   constexpr float kMaxValidBatteryVoltageV = 4.5f;
+  constexpr float kDisconnectedBatteryVoltageV = 4.6f;
 } // namespace battery
 
 namespace power {
