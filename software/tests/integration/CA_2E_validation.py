@@ -37,8 +37,13 @@ async def run_and_assert_ca_accuracy(
     if actual_points == 0:
         raise AssertionError(f'[{label}] CA run returned no data points')
 
-    assert_within_tolerance(label=f'{label}/point_count', actual=actual_points, expected=expected_points,
-                            tolerance_fraction=tolerance_fraction, units=' pts')
+    assert_within_tolerance(
+        label=f'{label}/point_count',
+        actual=actual_points,
+        expected=expected_points,
+        tolerance_fraction=tolerance_fraction,
+        units=' pts',
+    )
 
     current_uA = data[:, 1]
     mean_current_uA = float(np.mean(current_uA))
@@ -154,7 +159,7 @@ async def run_test(args: argparse.Namespace) -> None:
             ValidationCase(
                 'max_current_out_of_range',
                 {'max_current': 10_001.0},
-                'max_current must be > 0 and â‰¤ 10,000 ÂµA',
+                'max_current must be > 0 and <= 10,000 uA',
             ),
             ValidationCase(
                 'pulse_potential_out_of_range',
@@ -179,12 +184,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument('--device-name', default='Biocoin')
     parser.add_argument('--channel', type=int, default=0, help='2-electrode channel index (default: 0)')
-    parser.add_argument('--sampling-interval', type=float, default=0.2, help='CA sampling interval in seconds')
-    parser.add_argument('--processing-interval', type=float, default=0.2, help='CA processing interval in seconds')
+    parser.add_argument('--sampling-interval', type=float, default=1, help='CA sampling interval in seconds')
+    parser.add_argument('--processing-interval', type=float, default=5, help='CA processing interval in seconds')
     parser.add_argument('--max-current', type=float, default=100.0, help='CA max current in uA')
     parser.add_argument('--pulse-potential', type=float, default=200.0, help='CA pulse potential in mV')
-    parser.add_argument('--quick-duration', type=float, default=10.0, help='Quick CA run duration in seconds')
-    parser.add_argument('--stress-duration', type=float, default=100.0, help='Stress-test CA run duration in seconds')
+    parser.add_argument('--quick-duration', type=float, default=30.0, help='Quick CA run duration in seconds')
+    parser.add_argument('--stress-duration', type=float, default=120.0, help='Stress-test CA run duration in seconds')
     parser.add_argument('--resistor-ohms', type=float, default=10000.0, help='Fixed RE-WE resistor value in ohms')
     parser.add_argument(
         '--tolerance-fraction',
@@ -198,5 +203,3 @@ def build_parser() -> argparse.ArgumentParser:
 if __name__ == '__main__':
     parser = build_parser()
     asyncio.run(run_test(parser.parse_args()))
-
-
