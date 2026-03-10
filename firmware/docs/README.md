@@ -1,6 +1,6 @@
 # Documentation Index
 
-- `BLE_PROTOCOL.md`: BLE characteristics, command framing, and payload notes.
+- `BLE_PROTOCOL.md`: BLE characteristics, command framing, payload notes, and digital I/O payload formats.
 - `BUILD_FLASH.md`: Build/flash notes and environment assumptions.
 - `BATTERY_CALIBRATION.md`: BLE logging, curve fitting, and config update workflow for battery percent calibration.
 - `CA_TECHNIQUE.md`: CA-specific parameter constraints, timing behavior, and ENDSEQ handling.

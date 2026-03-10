@@ -8,6 +8,7 @@
 #include "battery/battery.h"
 #include "bluetooth/bluetooth.h"
 #include "bluetooth/transmitdata_task.h"
+#include "digital/digital_io_manager.h"
 #include "power/power.h"
 #include "sensors/core/sensor_manager.h"
 #include "storage/storage.h"
@@ -19,6 +20,8 @@
 namespace bluetooth {
   BLECharacteristic chrStatus(kUUIDChrStatus);
   BLECharacteristic chrDeviceName(kUUIDChrDeviceName);
+  BLECharacteristic chrDigitalConfig(kUUIDChrDigitalConfig);
+  BLECharacteristic chrDigitalValue(kUUIDChrDigitalValue);
 #if BIOCOIN_ENABLE_DEBUG_GATT
   BLECharacteristic chrDebugBatteryMillivolts(kUUIDChrDebugBattery);
   BLECharacteristic chrDebugAFEPower(kUUIDChrDebugAFEPower);
@@ -28,6 +31,43 @@ namespace bluetooth {
   BLECharacteristic chrSensorParams(kUUIDChrSensorParams);
 
 } // namespace bluetooth
+
+namespace {
+  void replyWithReadPayload(uint16_t conn_hdl, ble_gatts_evt_read_t* request, const std::vector<uint8_t>& payload) {
+    ble_gatts_rw_authorize_reply_params_t reply = {};
+    reply.type = BLE_GATTS_AUTHORIZE_TYPE_READ;
+    reply.params.read.gatt_status = BLE_GATT_STATUS_SUCCESS;
+    reply.params.read.update = 1;
+    reply.params.read.offset = 0;
+    reply.params.read.len = 0;
+    reply.params.read.p_data = nullptr;
+
+    if (request == nullptr) {
+      reply.params.read.gatt_status = BLE_GATT_STATUS_ATTERR_UNLIKELY_ERROR;
+      sd_ble_gatts_rw_authorize_reply(conn_hdl, &reply);
+      return;
+    }
+
+    if (request->offset > payload.size()) {
+      reply.params.read.gatt_status = BLE_GATT_STATUS_ATTERR_INVALID_OFFSET;
+      sd_ble_gatts_rw_authorize_reply(conn_hdl, &reply);
+      return;
+    }
+
+    BLEConnection* conn = Bluefruit.Connection(conn_hdl);
+    const uint16_t mtuPayload =
+        (conn != nullptr && conn->getMtu() > bluetooth::kATTHeaderLen)
+            ? (conn->getMtu() - bluetooth::kATTHeaderLen)
+            : (23u - bluetooth::kATTHeaderLen);
+    const size_t available = payload.size() - request->offset;
+    const uint16_t readLen = static_cast<uint16_t>(min(static_cast<size_t>(mtuPayload), available));
+
+    reply.params.read.offset = request->offset;
+    reply.params.read.len = readLen;
+    reply.params.read.p_data = const_cast<uint8_t*>(payload.data()) + request->offset;
+    sd_ble_gatts_rw_authorize_reply(conn_hdl, &reply);
+  }
+} // namespace
 
 #if BIOCOIN_ENABLE_DEBUG_GATT
 namespace {
@@ -102,6 +142,26 @@ void bluetooth::initGatt() {
   chrSensorParams.begin();
   chrSensorParams.setWriteCallback(onSensorParameters);
 
+  // Digital Config
+  chrDigitalConfig.setProperties(CHR_PROPS_READ | CHR_PROPS_WRITE | CHR_PROPS_WRITE_WO_RESP);
+  chrDigitalConfig.setPermission(SECMODE_OPEN, SECMODE_OPEN);
+  chrDigitalConfig.setMaxLen(digital::getConfigPayloadSize());
+  chrDigitalConfig.begin();
+  const std::vector<uint8_t> initialDigitalConfig = digital::readConfig();
+  chrDigitalConfig.write(initialDigitalConfig.data(), initialDigitalConfig.size());
+  chrDigitalConfig.setWriteCallback(onDigitalConfigWrite);
+  chrDigitalConfig.setReadAuthorizeCallback(onDigitalConfigRead);
+
+  // Digital Value
+  chrDigitalValue.setProperties(CHR_PROPS_READ | CHR_PROPS_WRITE | CHR_PROPS_WRITE_WO_RESP);
+  chrDigitalValue.setPermission(SECMODE_OPEN, SECMODE_OPEN);
+  chrDigitalValue.setMaxLen(digital::getValuePayloadSize());
+  chrDigitalValue.begin();
+  const std::vector<uint8_t> initialDigitalValue = digital::readValue();
+  chrDigitalValue.write(initialDigitalValue.data(), initialDigitalValue.size());
+  chrDigitalValue.setWriteCallback(onDigitalValueWrite);
+  chrDigitalValue.setReadAuthorizeCallback(onDigitalValueRead);
+
   // Sensor Data
   chrSensorData.setProperties(CHR_PROPS_READ | CHR_PROPS_NOTIFY);
   chrSensorData.setPermission(SECMODE_OPEN, SECMODE_NO_ACCESS);
@@ -141,6 +201,42 @@ void bluetooth::onSensorParameters(uint16_t conn_hdl, BLECharacteristic* chr, ui
   if (!payloadValidation::requireLengthInRange(data, len, 1, kMaxParamsLen, "EChem parameters")) return;
 
   sensor::loadParameters(data, len);
+}
+
+void bluetooth::onDigitalConfigWrite(uint16_t, BLECharacteristic*, uint8_t* data, uint16_t len) {
+  const uint16_t kMaxLen = static_cast<uint16_t>(digital::getConfigPayloadSize());
+  if (!payloadValidation::requireLengthInRange(data, len, sizeof(digital::DigitalConfigHeader), kMaxLen,
+                                               "digital config"))
+    return;
+
+  if (!digital::writeConfig(data, len)) return;
+
+  const std::vector<uint8_t> payload = digital::readConfig();
+  chrDigitalConfig.write(payload.data(), payload.size());
+}
+
+void bluetooth::onDigitalValueWrite(uint16_t, BLECharacteristic*, uint8_t* data, uint16_t len) {
+  const uint16_t kMaxLen = static_cast<uint16_t>(digital::getValuePayloadSize());
+  if (!payloadValidation::requireLengthInRange(data, len, sizeof(digital::DigitalValueHeader), kMaxLen,
+                                               "digital value"))
+    return;
+
+  if (!digital::writeValue(data, len)) return;
+
+  const std::vector<uint8_t> payload = digital::readValue();
+  chrDigitalValue.write(payload.data(), payload.size());
+}
+
+void bluetooth::onDigitalConfigRead(uint16_t conn_hdl, BLECharacteristic* chr, ble_gatts_evt_read_t* request) {
+  const std::vector<uint8_t> payload = digital::readConfig();
+  chr->write(payload.data(), payload.size());
+  replyWithReadPayload(conn_hdl, request, payload);
+}
+
+void bluetooth::onDigitalValueRead(uint16_t conn_hdl, BLECharacteristic* chr, ble_gatts_evt_read_t* request) {
+  const std::vector<uint8_t> payload = digital::readValue();
+  chr->write(payload.data(), payload.size());
+  replyWithReadPayload(conn_hdl, request, payload);
 }
 
 #if BIOCOIN_ENABLE_DEBUG_GATT

@@ -3,15 +3,15 @@
 Firmware for the Biocoin wearable electrochemical platform.
 This code runs on an nRF52840-based board and controls an Analog Devices AD5940 for multi-modal electrochemical sensing. It exposes a BLE interface for configuring techniques, starting/stopping tests, and streaming results to a host (Python app, mobile, etc.).
 
-Current release: **v1.1.2**
+Current release: **v1.1.4**
 
 > Techniques supported: **CA**, **CV**, **DPV**, **SWV**, **Impedance (EIS)**, **OCP**, **TEMP**, and **Iontophoresis**.
 
-## v1.1.2 Highlights
+## v1.1.4 Highlights
 
-- Technique refactor focused on shared setup/runtime helpers for readability and reuse.
-- Runtime reliability fixes for FIFO/interrupt handling after calibration and during CA stop.
-- Data-mover interrupt wake path updated to ISR-safe FreeRTOS APIs.
+- Added persistent runtime digital I/O over BLE with separate `DigitalConfig` and `DigitalValue` characteristics.
+- Added runtime-persistent logical digital channels mapped to `P0.11`, `P0.12`, `P0.24`, and `P0.25`.
+- Kept the digital interface independent from `Sensor` / `SensorManager`.
 
 ---
 
@@ -99,6 +99,9 @@ src/
     gatt.{h,cpp}
     transmitdata_task.h
     transmitdata_task.cpp
+  digital/
+    digital_io_manager.{h,cpp}
+    digital_pin_map.h
   battery/
     battery.{h,cpp}
     battery_task.{h,cpp}
@@ -127,6 +130,8 @@ All techniques inherit from `sensor::Sensor` and (for streaming) use `SensorQueu
 - `ISR()` (invoked via AFE interrupt / data mover task)
 
 **Data streaming:** techniques push `float` samples; the BLE TX pipeline sends a raw byte vector (little-endian floats) produced by `SensorQueue<T>::popBytes()`.
+
+The digital I/O interface is separate from the sensor framework. `src/digital` owns a runtime-persistent RAM-only channel table exposed over BLE through `DigitalConfig` and `DigitalValue`; it is not managed by `SensorManager` and is not tied to technique start/stop.
 
 ---
 
@@ -158,9 +163,12 @@ For lowest-power operation, SDK-level `WInterrupts` changes are still required (
 - A **Control** characteristic accepts a command (`START` / `STOP`)
 - A **Status** characteristic reports `TestState` (`NOT_RUNNING`, `RUNNING`, `ERROR`, etc.)
 - A **Data** characteristic streams measurement results as raw bytes (floats)
+- A **DigitalConfig** characteristic stores persistent runtime digital channel configuration
+- A **DigitalValue** characteristic exposes live digital channel state and output control
 - TX transport detail: outgoing BLE data uses a bounded FreeRTOS stream buffer. If producers outrun BLE notify throughput, excess bytes are dropped and logged.
 
 > UUIDs/handles are defined in the BLE layer (see `src/bluetooth/gatt.*`). Host apps should send the correct packed struct for the selected technique.
+> The digital interface uses logical channels mapped internally to `P0.11`, `P0.12`, `P0.24`, and `P0.25`.
 
 ---
 

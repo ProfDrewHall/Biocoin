@@ -9,6 +9,7 @@
 #include "HWConfig/constants.h"
 #include "battery/battery.h"
 #include "bluetooth/bluetooth.h"
+#include "digital/digital_io_manager.h"
 #include "power/power.h"
 #include "sensors/core/sensor_manager.h"
 #include "storage/storage.h"
@@ -42,6 +43,7 @@ void setup() {
   power::init();
   storage::init();
   battery::init();
+  digital::init();
   bluetooth::init();
   sensor::init();
 

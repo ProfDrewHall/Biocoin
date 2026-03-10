@@ -1,5 +1,14 @@
 # Revision History
 
+## v1.1.4 - 2026-03-10
+- Added persistent runtime digital I/O BLE interface:
+  - Added standalone digital manager in `src/digital/` with RAM-only persistent state and boot-time reset to floating defaults.
+  - Added `DigitalConfig` (`0x152B`) and `DigitalValue` (`0x152C`) BLE characteristics with strict packed-payload validation.
+  - Added logical-channel whitelist for `P0.11`, `P0.12`, `P0.24`, and `P0.25`; raw MCU pin numbers are not exposed over BLE.
+  - Added runtime GPIO/PWM mode transitions independent of `Sensor` / `SensorManager`.
+- Documentation update:
+  - Expanded `docs/BLE_PROTOCOL.md` and `README.md` with digital I/O protocol and architecture notes.
+
 ## v1.1.3 - 2026-03-06
 - Added battery coefficients for FP10AAB36 battery
 - Task lifecycle alignment:
