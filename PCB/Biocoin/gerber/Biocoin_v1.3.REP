@@ -288,8 +288,8 @@ Used DCodes :
     D41
     D42
     D43
-    D47
-    D48
+    D44
+    D45
     D49
     D50
     D51
@@ -333,7 +333,7 @@ Used DCodes :
     D10
     D14
     D17
-    D40
+    D43
     D99
     D100
     D101
@@ -365,7 +365,7 @@ Generating : GND2
 Used DCodes :
     D14
     D17
-    D40
+    D43
     D103
     D108
     D109
@@ -384,11 +384,11 @@ Generating : Power
 
 Used DCodes :
     D17
-    D40
+    D43
     D100
     D101
-    D102
     D103
+    D104
     D108
     D110
     D111
@@ -408,13 +408,13 @@ Used DCodes :
     D10
     D14
     D17
-    D40
+    D43
     D99
     D100
     D101
-    D102
     D103
     D104
+    D105
     D108
     D109
     D110
@@ -432,8 +432,8 @@ Generating : GND1
 
 Used DCodes :
     D14
-    D40
-    D102
+    D43
+    D100
     D103
     D108
     D109
@@ -477,8 +477,8 @@ Used DCodes :
     D41
     D42
     D43
-    D47
-    D48
+    D44
+    D45
     D49
     D50
     D51
