@@ -4,15 +4,15 @@ C:\Users\Public\Documents\Altium\Biocoin_v1.3\Project Outputs for Biocoin_v1.3\P
 ========================================================================================================================
 File Design Information:
 
-Date:       21/05/23
-Time:       12:54
-Revision:   66513983171294763728b7d06fd03c0048f9014e
+Date:       11/03/26
+Time:       15:30
+Revision:   d4fdf513be8b799567984a75888ec064f3a0da92
 Variant:    No variations
 Units used: mil
 
 Designator Comment                    Layer       Footprint                      Center-X(mil) Center-Y(mil) Rotation Description                                                                                              
+L2         IND                        TopLayer    0201_ferrite                   71.000        627.000       270      "Surface Mount Inductor"                                                                                 
 R31        RES                        TopLayer    0201_res                       261.000       737.000       180      "Surface Mount Resistor"                                                                                 
-R30        RES                        TopLayer    0201_RES                       71.000        632.000       270      "Surface Mount Resistor"                                                                                 
 Q4         TF412ST5G                  TopLayer    TF412ST5G                      251.000       589.000       0        "N-ch JFET Transistor"                                                                                   
 RSENSE     RES                        TopLayer    0402-RES                       188.000       578.000       90       "Surface Mount Resistor"                                                                                 
 R29        RES                        TopLayer    0201_RES                       251.000       637.000       180      "Surface Mount Resistor"                                                                                 
