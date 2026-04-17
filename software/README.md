@@ -18,6 +18,8 @@ The software is organized as a reusable package (`biocoin`) plus standalone tech
 
 ## Setup
 
+The software requires Python 3.13 or newer. The backend uses Python 3.13 generic class syntax, so Streamlit must also run from a Python 3.13+ environment.
+
 ### 1. Clone the repository
 
 ```bash
@@ -25,29 +27,67 @@ git clone https://github.com/ProfDrewHall/Biocoin.git
 cd Biocoin/software
 ```
 
-### 2. Install `uv`
+### 2. Install Python 3.13
 
-macOS / Linux:
+macOS with Homebrew:
 
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
+brew install python@3.13
 ```
 
-Windows (PowerShell):
+Confirm the installed version:
 
-```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```bash
+python3.13 --version
 ```
 
-### 3. Run a technique script
+### 3. Create and activate a virtual environment
+
+From the `software` directory:
+
+```bash
+python3.13 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+```
+
+After activation, `python --version` should report Python 3.13 or newer.
+
+### 4. Install the package and dependencies
+
+```bash
+python -m pip install -e .
+```
+
+### 5. Run a technique script
 
 Example:
 
 ```bash
-uv run python src/run_CA.py --help
+python src/run_CA.py --help
 ```
 
-`uv run` will create/sync the environment automatically as needed.
+### 6. Run the Streamlit GUI
+
+```bash
+python -m streamlit run src/Home.py
+```
+
+Use `python -m streamlit` instead of `streamlit` so the GUI runs with the active Python 3.13 virtual environment.
+
+### Optional: Use `uv`
+
+If you prefer `uv`, install it first:
+
+```bash
+brew install uv
+```
+
+Then run the GUI with Python 3.13:
+
+```bash
+uv run --python 3.13 streamlit run src/Home.py
+```
 
 ---
 
@@ -56,14 +96,14 @@ uv run python src/run_CA.py --help
 Each technique has a dedicated CLI script that exposes its parameters:
 
 ```bash
-uv run python src/run_CA.py --help
-uv run python src/run_CV.py --help
-uv run python src/run_DPV.py --help
-uv run python src/run_SWV.py --help
-uv run python src/run_IMP.py --help
-uv run python src/run_OCP.py --help
-uv run python src/run_TEMP.py --help
-uv run python src/run_IONTO.py --help
+python src/run_CA.py --help
+python src/run_CV.py --help
+python src/run_DPV.py --help
+python src/run_SWV.py --help
+python src/run_IMP.py --help
+python src/run_OCP.py --help
+python src/run_TEMP.py --help
+python src/run_IONTO.py --help
 ```
 
 Typical output CSV paths default to `./results/*_output.csv` for data-producing techniques.
