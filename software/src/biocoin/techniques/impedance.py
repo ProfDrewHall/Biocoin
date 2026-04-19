@@ -1,5 +1,5 @@
 """
-Impedance spectroscopy technique implementation.
+Impedance technique implementation.
 """
 
 import struct
@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 @dataclass(frozen=True, slots=True)
 class ImpedanceConfig:
     """
-    Configuration payload fields for impedance spectroscopy.
+    Configuration payload fields for impedance measurements.
     """
 
     sampling_interval: float

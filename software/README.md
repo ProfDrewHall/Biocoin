@@ -1,4 +1,4 @@
-# Biocoin Device Software
+﻿# Biocoin Device Software
 
 This repository contains Python code to interface with the Biocoin hardware platform over BLE.
 It supports configuration and execution of all currently implemented techniques:
@@ -7,12 +7,16 @@ It supports configuration and execution of all currently implemented techniques:
 - Cyclic Voltammetry (CV)
 - Differential Pulse Voltammetry (DPV)
 - Square-Wave Voltammetry (SWV)
-- Impedance Spectroscopy (IMP)
+- Impedance (IMP)
 - Open-Circuit Potential (OCP)
 - Temperature Monitoring (TEMP)
 - Iontophoresis (IONTOPH)
 
-The software is organized as a reusable package (`biocoin`) plus standalone technique runner scripts under `src/`.
+The software is organized as:
+
+- a reusable backend library in `src/biocoin/`
+- a Streamlit GUI package in `src/biocoin_gui/`
+- standalone technique runner scripts in `src/run_*.py`
 
 ---
 
@@ -70,10 +74,16 @@ python src/run_CA.py --help
 ### 6. Run the Streamlit GUI
 
 ```bash
-python -m streamlit run src/Home.py
+python -m streamlit run src/biocoin_gui/app.py
 ```
 
 Use `python -m streamlit` instead of `streamlit` so the GUI runs with the active Python 3.13 virtual environment.
+
+If you are using `uv`, run:
+
+```bash
+uv run --python 3.13 streamlit run src/biocoin_gui/app.py
+```
 
 ### Optional: Use `uv`
 
@@ -86,7 +96,7 @@ brew install uv
 Then run the GUI with Python 3.13:
 
 ```bash
-uv run --python 3.13 streamlit run src/Home.py
+uv run --python 3.13 streamlit run src/biocoin_gui/app.py
 ```
 
 ---
@@ -157,6 +167,20 @@ src/
 |   |   `-- validation.py
 |   `-- utils/
 |       `-- ble_util.py
+|-- biocoin_gui/
+|   |-- __init__.py
+|   |-- app.py
+|   |-- runtime.py
+|   `-- pages/
+|       |-- __init__.py
+|       |-- ca.py
+|       |-- cv.py
+|       |-- dpv.py
+|       |-- imp.py
+|       |-- ip.py
+|       |-- ocp.py
+|       |-- swv.py
+|       `-- temp.py
 `-- utils/
     `-- logging_util.py
 ```
@@ -182,3 +206,4 @@ Contact: rsankar@ucsd.edu
 **Tyler Hack**
 University of California, San Diego
 Contact: thack@ucsd.edu
+

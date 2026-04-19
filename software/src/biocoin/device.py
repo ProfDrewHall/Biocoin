@@ -65,6 +65,7 @@ class BiocoinDevice:
     async def connect(
         self,
         name: str | None = None,
+        address: str | None = None,
         max_retries: int = DEFAULT_CONNECT_MAX_RETRIES,
         timeout: float = DEFAULT_CONNECT_TIMEOUT_S,
     ) -> None:
@@ -73,6 +74,7 @@ class BiocoinDevice:
 
         Parameters:
             - name (str | None): Optional name to search for. Defaults to "Biocoin".
+            - address (str | None): Optional BLE address to connect to directly.
             - max_retries (int): Maximum number of connection attempts.
             - timeout (float): Per-attempt timeout in seconds.
         Returns:
@@ -82,8 +84,13 @@ class BiocoinDevice:
             - RuntimeError: If the device cannot be found or connection fails.
         """
         requested_name = name or DEVICE_NAME
-        logger.info(f'Searching for the Biocoin device named "{requested_name}"...')
-        device_name, address = await find_address_by_uuid(self.uuid, name=requested_name)
+        device_name = requested_name
+
+        if address is None:
+            logger.info(f'Searching for a connectable Biocoin device named "{requested_name}"...')
+            device_name, address = await find_address_by_uuid(self.uuid, name=requested_name)
+        else:
+            logger.info(f'Connecting to verified Biocoin device "{requested_name}" at {address}...')
 
         if not address:
             # Try printing available devices to help the user debug
@@ -109,8 +116,14 @@ class BiocoinDevice:
                 if not self.client.is_connected:
                     raise RuntimeError('Connected returned but client.is_connected is False')
 
-                # Trigger service resolution sanity check
-                _ = self.client.services  # populated after connect in modern Bleak
+                services = self.client.services
+                if not services:
+                    await self.client.get_services()
+                    services = self.client.services
+
+                if not any(service.uuid.lower() == self.uuid.lower() for service in services):
+                    raise RuntimeError(f'Device at {address} does not expose required service {self.uuid}.')
+
                 logger.info(f'Connected to Biocoin device at {address}.')
                 return
 
@@ -119,6 +132,10 @@ class BiocoinDevice:
                 # Helpful recovery steps between retries
                 await asyncio.sleep(delay)
                 delay = min(delay * 2, MAX_RETRY_DELAY_S)
+            except Exception:
+                if self.client.is_connected:
+                    await self.client.disconnect()
+                raise
 
         raise RuntimeError(f'Failed to connect to the Biocoin device at {address}.')
 
@@ -246,5 +263,3 @@ class BiocoinDevice:
         client = self._require_client()
         tech_char = self.get_characteristic(BIOCOIN_UUID_CHR_ECHEMTECH)
         await client.write_gatt_char(tech_char, bytearray(config_bytes))
-
-

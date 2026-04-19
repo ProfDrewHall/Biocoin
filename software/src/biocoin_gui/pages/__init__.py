@@ -1,0 +1,3 @@
+"""
+Biocoin Streamlit page modules.
+"""

@@ -1,5 +1,5 @@
 """
-Standalone IMP example CLI for running impedance spectroscopy with explicit parameters.
+Standalone IMP example CLI for running impedance measurements with explicit parameters.
 """
 
 import argparse
@@ -49,7 +49,7 @@ def write_csv(data: np.ndarray, output_path: Path) -> None:
     Write IMP output to CSV.
 
     Parameters:
-        - data (np.ndarray): 2D array with [magnitude (Ohm), phase (deg)] columns.
+        - data (np.ndarray): 2D array with [magnitude (Ω), phase (deg)] columns.
         - output_path (Path): Destination CSV file.
     Returns:
         - None
@@ -59,7 +59,7 @@ def write_csv(data: np.ndarray, output_path: Path) -> None:
         output_path,
         np.asarray(data, dtype=float),
         delimiter=',',
-        header='Magnitude (Ohm), Phase (deg)',
+        header='Magnitude (Ω), Phase (deg)',
         comments='',
     )
 

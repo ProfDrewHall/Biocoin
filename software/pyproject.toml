@@ -60,7 +60,7 @@ dev = [
 
 [tool.mypy]
 python_version = "3.13"
-files = ["src/biocoin", "src/utils"]
+files = ["src/biocoin", "src/biocoin_gui", "src/utils"]
 mypy_path = ["src"]
 explicit_package_bases = true
 ignore_missing_imports = true
@@ -74,4 +74,4 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["biocoin*", "utils*"]
+include = ["biocoin*", "biocoin_gui*", "utils*"]
