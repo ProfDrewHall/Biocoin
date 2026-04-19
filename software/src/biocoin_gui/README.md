@@ -1,4 +1,4 @@
-# `biocoin_gui`
+# Biocoin GUI
 
 Streamlit-based graphical interface for the Biocoin control software.
 
