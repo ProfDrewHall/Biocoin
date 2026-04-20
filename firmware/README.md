@@ -3,15 +3,15 @@
 Firmware for the Biocoin wearable electrochemical platform.
 This code runs on an nRF52840-based board and controls an Analog Devices AD5940 for multi-modal electrochemical sensing. It exposes a BLE interface for configuring techniques, starting/stopping tests, and streaming results to a host (Python app, mobile, etc.).
 
-Current release: **v1.1.2**
+Current release: **v1.1.5**
 
 > Techniques supported: **CA**, **CV**, **DPV**, **SWV**, **Impedance (EIS)**, **OCP**, **TEMP**, and **Iontophoresis**.
 
-## v1.1.2 Highlights
+## v1.1.5 Highlights
 
-- Technique refactor focused on shared setup/runtime helpers for readability and reuse.
-- Runtime reliability fixes for FIFO/interrupt handling after calibration and during CA stop.
-- Data-mover interrupt wake path updated to ISR-safe FreeRTOS APIs.
+- Improved BLE status reporting for malformed sensor control and parameter writes.
+- Cleared stale error states after successful same-technique parameter updates.
+- Made active-sensor cleanup failures preserve the active sensor and publish `ERROR` instead of masking failures as `NOT_RUNNING`.
 
 ---
 
@@ -39,6 +39,8 @@ From VS Code (PlatformIO) or CLI:
 ```bash
 pio run
 ```
+
+Note: `DEBUG_MODE` builds briefly block at startup while waiting for a USB serial connection to attach. The current timeout is about 2 seconds; after that, startup continues normally even if no serial monitor is connected.
 
 Optional pre-push hook (runs sanity checks + mode smoke checks, builds `debug` + `release`, and copies artifacts to `build/<env>/`):
 ```bash
@@ -336,4 +338,3 @@ Contact: thack@ucsd.edu
 
 ### Acknowledgments
 Thanks to the BioEE group at UC San Diego and collaborators for contributions and testing.
-

@@ -68,8 +68,9 @@ namespace sensor {
   void interruptHandler();
   /**
    * @brief Stop and release currently active sensor instance.
+   * @return True when cleanup completes cleanly.
    */
-  void cleanupSensor();
+  bool cleanupSensor();
   /**
    * @brief Move buffered sensor data into BLE TX queue.
    * @param minBytesRequired Minimum bytes required before queueing (0 to flush all).

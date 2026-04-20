@@ -83,7 +83,7 @@ bool sensor::loadParameters(const uint8_t* data, uint16_t len) {
   const SensorType requestedType = static_cast<SensorType>(data[0]);
 
   if (!pActiveSensor || requestedType != activeSensorID) {
-    cleanupSensor();
+    if (!cleanupSensor()) return false;
 
     std::unique_ptr<Sensor> next = createSensor(requestedType);
     if (!next) {
@@ -102,6 +102,8 @@ bool sensor::loadParameters(const uint8_t* data, uint16_t len) {
     updateStatus(TestState::INVALID_PARAMETERS);
     return false;
   }
+
+  updateStatus(pActiveSensor->isRunning() ? TestState::RUNNING : TestState::NOT_RUNNING);
 
   return true;
 }
@@ -145,18 +147,23 @@ void sensor::interruptHandler() {
   startDataMoverTask(); // Deal with the interrupt
 }
 
-void sensor::cleanupSensor() {
+bool sensor::cleanupSensor() {
   disableAFEInterrupt(); // Stop interrupts
   if (pActiveSensor) {
     if (pActiveSensor->isRunning()) {
       const bool stopped = pActiveSensor->stop();
-      if (!stopped) dbgWarn("cleanupSensor(): failed to stop active sensor cleanly");
+      if (!stopped) {
+        dbgWarn("cleanupSensor(): failed to stop active sensor cleanly");
+        updateStatus(TestState::ERROR);
+        return false;
+      }
     }
     pActiveSensor = nullptr;
   }
   activeSensorID = SensorType::None;
 
   updateStatus(TestState::NOT_RUNNING);
+  return true;
 }
 
 void sensor::queueDataForTX(size_t minBytesRequired) {

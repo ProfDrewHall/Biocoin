@@ -124,7 +124,10 @@ void bluetooth::onNameWrite(uint16_t, BLECharacteristic*, uint8_t* data, uint16_
 }
 
 void bluetooth::onSensorControl(uint16_t conn_hdl, BLECharacteristic* chr, uint8_t* data, uint16_t len) {
-  if (!payloadValidation::requireLengthInRange(data, len, 1, 1, "EChem control")) return;
+  if (!payloadValidation::requireLengthInRange(data, len, 1, 1, "EChem control")) {
+    sensor::updateStatus(sensor::TestState::INVALID_PARAMETERS);
+    return;
+  }
 
   dbgInfo("Received EChem Control Command");
   const sensor::SensorCmd cmd = static_cast<sensor::SensorCmd>(data[0]);
@@ -138,7 +141,10 @@ void bluetooth::onSensorControl(uint16_t conn_hdl, BLECharacteristic* chr, uint8
 
 void bluetooth::onSensorParameters(uint16_t conn_hdl, BLECharacteristic* chr, uint8_t* data, uint16_t len) {
   constexpr uint16_t kMaxParamsLen = kMTURequest - kATTHeaderLen;
-  if (!payloadValidation::requireLengthInRange(data, len, 1, kMaxParamsLen, "EChem parameters")) return;
+  if (!payloadValidation::requireLengthInRange(data, len, 1, kMaxParamsLen, "EChem parameters")) {
+    sensor::updateStatus(sensor::TestState::INVALID_PARAMETERS);
+    return;
+  }
 
   sensor::loadParameters(data, len);
 }

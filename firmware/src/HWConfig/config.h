@@ -8,7 +8,7 @@
 
 #include <cstdint>
 
-#define BIOCOIN_FW_VERSION "1.1.3" // Keep in sync with release tags/app compatibility.
+#define BIOCOIN_FW_VERSION "1.1.5" // Keep in sync with release tags/app compatibility.
 
 #ifdef DEBUG_MODE
 #define BIOCOIN_ENABLE_DEBUG_GATT 1

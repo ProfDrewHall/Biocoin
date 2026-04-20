@@ -1,5 +1,13 @@
 # Revision History
 
+## v1.1.5 - 2026-04-20
+- Sensor status reliability:
+  - Cleared stale `INVALID_PARAMETERS` / error states after successful same-technique parameter reloads.
+  - Updated malformed BLE sensor control and parameter writes to publish `INVALID_PARAMETERS`.
+  - Made active-sensor cleanup failures preserve the current sensor and publish `ERROR` instead of masking failed stops as `NOT_RUNNING`.
+- Documentation updates:
+  - Added a README note that `DEBUG_MODE` builds briefly wait for USB serial before continuing startup.
+
 ## v1.1.3 - 2026-03-06
 - Added battery coefficients for FP10AAB36 battery
 - Task lifecycle alignment:
